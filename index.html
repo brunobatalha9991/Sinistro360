@@ -116,6 +116,46 @@ function setOvr(id,patch){var o=loadOvr();o[id]=Object.assign({},o[id],patch);sa
 function getRole(){return localStorage.getItem(ROLE_KEY)||"admin";}
 function setRole(r){localStorage.setItem(ROLE_KEY,r);}
 
+/* ---- Templates de jornada POR RAMO (definidos só pelo ADM em Configurações) ---- */
+var TPL_KEY="corp_journey_templates";
+function loadTemplates(){try{return JSON.parse(localStorage.getItem(TPL_KEY))||{};}catch(e){return{};}}
+function saveTemplates(t){localStorage.setItem(TPL_KEY,JSON.stringify(t));}
+/* Estrutura padrão de um ramo recém-criado */
+function defaultRamoTemplate(){
+  return {
+    parcial:[
+      {id:"rep_autorizados",title:"Reparos autorizados",statusOptions:STATUS_DEFAULT.slice()},
+      {id:"pecas",title:"Peças",statusOptions:STATUS_DEFAULT.slice()},
+      {id:"reparo",title:"Reparo",statusOptions:STATUS_DEFAULT.slice()},
+      {id:"conclusao",title:"Conclusão",statusOptions:STATUS_DEFAULT.slice()}
+    ],
+    integral:[
+      {id:"documentacao",title:"Documentação",statusOptions:STATUS_DEFAULT.slice()},
+      {id:"transf",title:"Transf. do veículo",statusOptions:STATUS_DEFAULT.slice()},
+      {id:"analise_final",title:"Análise final",statusOptions:STATUS_DEFAULT.slice()},
+      {id:"conclusao",title:"Conclusão",statusOptions:STATUS_DEFAULT.slice()}
+    ]
+  };
+}
+/* Garante que um ramo exista nos templates. Chamado na sincronização e ao abrir config. */
+function ensureRamoTemplate(ramo){
+  if(!ramo) return;
+  var t=loadTemplates();
+  if(!t[ramo]){ t[ramo]=defaultRamoTemplate(); saveTemplates(t); }
+}
+function getRamoTemplate(ramo){
+  var t=loadTemplates();
+  if(!t[ramo]){ ensureRamoTemplate(ramo); t=loadTemplates(); }
+  return t[ramo]||defaultRamoTemplate();
+}
+/* Preenchimento manual do usuário no sinistro (por etapa): status/date/note + caminho escolhido */
+function getUserJourney(claimId){
+  var ovr=getOvr(claimId);
+  return ovr.journeyUser||{caminho:"",steps:{}}; // steps: { stepId: {status,date,note} }
+}
+function saveUserJourney(claimId,uj){ setOvr(claimId,{journeyUser:uj}); }
+
+
 /* ---------- API CORP ---------- */
 var CorpAPI=(function(){
   function base(){var u=(getCfg().url||"").trim().replace(/\/+$/,"");if(u&&!/^https?:\/\//.test(u))u="https://"+u;return u;}
@@ -259,80 +299,60 @@ function detailPanel(c){
   if(detailTab==="raw")return U.el("div",{class:"card"},[U.el("h3",{text:"Resposta bruta da API",style:"margin-top:0"}),U.el("pre",{style:"white-space:pre-wrap;font-size:12px;background:#0f172a;color:#a5f3fc;padding:14px;border-radius:8px;overflow:auto",text:JSON.stringify(c._raw,null,2)})]);
 }
 
-/* ---------- JORNADA (editável, sobrevive à sincronização) ---------- */
+/* ---------- JORNADA no sinistro: lê template do RAMO + preenchimento do usuário ---------- */
 function journeyPanel(c){
-  var isAdmin=getRole()==="admin";
-  var jr=getJourney(c.id);
+  var tpl=getRamoTemplate(c.ramo);
+  var uj=getUserJourney(c.id);
+  if(!uj.steps) uj.steps={};
   var wrap=U.el("div",{});
-
   function rerender(){ var np=journeyPanel(c); wrap.replaceWith(np); }
-  function persist(){ saveJourney(c.id,jr); }
+  function persist(){ saveUserJourney(c.id,uj); }
+  function stepData(id){ if(!uj.steps[id]) uj.steps[id]={status:"",date:"",note:""}; return uj.steps[id]; }
+
+  // Monta a lista de etapas: fixas + as do caminho escolhido (vindas do template do ramo)
+  var lista=[{id:"vistoria",title:"Vistoria",type:"status"},{id:"caminho",title:"Definir caminho (Perda Parcial / Perda Integral)",type:"caminho"}];
+  if(uj.caminho==="parcial") lista=lista.concat(tpl.parcial);
+  else if(uj.caminho==="integral") lista=lista.concat(tpl.integral);
 
   var stepsEl=U.el("div",{class:"journey"});
-  jr.steps.forEach(function(step,idx){
-    var done=(step.status||"").toLowerCase().indexOf("conclu")>=0;
-    var dotState=done?"done":(step.status?"current":"");
-    var bodyChildren=[];
-    // Cabeçalho da etapa
-    var titleEl;
-    if(isAdmin && !step.fixed){
-      titleEl=U.el("input",{class:"inline",value:step.title,style:"font-weight:700;min-width:220px",onchange:function(e){step.title=e.target.value;persist();}});
-    } else {
-      titleEl=U.el("h4",{text:step.title});
-    }
-    var headActions=[];
-    if(isAdmin && !step.fixed){
-      headActions.push(U.el("button",{class:"btn danger xs",text:"Excluir etapa",onclick:function(){jr.steps.splice(idx,1);persist();rerender();}}));
-    }
-    bodyChildren.push(U.el("div",{class:"jhead"},[titleEl,U.el("div",{style:"display:flex;gap:6px"},headActions)]));
-
+  lista.forEach(function(step){
+    var body=[];
+    body.push(U.el("div",{class:"jhead"},[U.el("h4",{text:step.title})]));
     if(step.type==="caminho"){
-      // Etapa "Definir caminho"
-      var sel=U.el("select",{class:"inline",onchange:function(e){applyCaminho(jr,e.target.value);persist();rerender();}},[
-        U.el("option",{value:"",text:"— Selecione —",selected:!jr.caminho?"selected":null}),
-        U.el("option",{value:"parcial",text:"Perda Parcial",selected:jr.caminho==="parcial"?"selected":null}),
-        U.el("option",{value:"integral",text:"Perda Integral",selected:jr.caminho==="integral"?"selected":null})
+      var sel=U.el("select",{class:"inline",onchange:function(e){uj.caminho=e.target.value;persist();rerender();}},[
+        U.el("option",{value:"",text:"— Selecione —",selected:!uj.caminho?"selected":null}),
+        U.el("option",{value:"parcial",text:"Perda Parcial",selected:uj.caminho==="parcial"?"selected":null}),
+        U.el("option",{value:"integral",text:"Perda Integral",selected:uj.caminho==="integral"?"selected":null})
       ]);
-      bodyChildren.push(U.el("div",{class:"jrow"},[U.el("div",{class:"field"},[U.el("label",{text:"Caminho do sinistro"}),sel])]));
-      if(jr.caminho) bodyChildren.push(U.el("div",{class:"muted",style:"margin-top:6px;font-size:12px",text:jr.caminho==="parcial"?"Perda Parcial: reparos autorizados, peças, reparo e conclusão.":"Perda Integral: documentação, transferência, análise final e conclusão."}));
-    } else {
-      // Etapa comum com caixa de status
-      var statusSel=U.el("select",{class:"inline",style:"min-width:170px",onchange:function(e){step.status=e.target.value;persist();rerender();}},
-        [U.el("option",{value:"",text:"— Status —",selected:!step.status?"selected":null})].concat(step.statusOptions.map(function(op){return U.el("option",{value:op,text:op,selected:step.status===op?"selected":null});})));
-      var dateInput=U.el("input",{type:"date",class:"inline",value:step.date||"",onchange:function(e){step.date=e.target.value;persist();}});
-      bodyChildren.push(U.el("div",{class:"jrow"},[
-        U.el("div",{class:"field"},[U.el("label",{text:"Status"}),statusSel]),
-        U.el("div",{class:"field"},[U.el("label",{text:"Data"}),dateInput])
-      ]));
-      var noteInput=U.el("input",{value:step.note||"",placeholder:"Observação desta etapa...",onchange:function(e){step.note=e.target.value;persist();}});
-      bodyChildren.push(U.el("div",{class:"field",style:"margin-top:8px"},[U.el("label",{text:"Observação"}),noteInput]));
-      // Gerenciar opções de status (incluir / editar / excluir) — disponível a todos
-      bodyChildren.push(statusManager(step,persist,rerender));
+      body.push(U.el("div",{class:"jrow"},[U.el("div",{class:"field"},[U.el("label",{text:"Caminho do sinistro"}),sel])]));
+      var d=stepData("vistoria"); // (vistoria tratada abaixo separadamente)
+      stepsEl.appendChild(U.el("div",{class:"jstep"},[U.el("div",{class:"jdot "+(uj.caminho?"done":"")},[U.el("span",{text:uj.caminho?"✓":""})]),U.el("div",{class:"jbody"+(uj.caminho?" done":"")},body)]));
+      return;
     }
-
-    stepsEl.appendChild(U.el("div",{class:"jstep"},[
-      U.el("div",{class:"jdot "+dotState,text:done?"✓":(step.status?"●":"")}),
-      U.el("div",{class:"jbody"+(done?" done":"")},bodyChildren)
-    ]));
+    // etapa com caixa de status (opções vêm do template; Vistoria usa status padrão)
+    var opts=step.statusOptions||STATUS_DEFAULT;
+    var sd=stepData(step.id);
+    var done=(sd.status||"").toLowerCase().indexOf("conclu")>=0;
+    var statusSel=U.el("select",{class:"inline",style:"min-width:170px",onchange:function(e){sd.status=e.target.value;persist();rerender();}},
+      [U.el("option",{value:"",text:"— Status —",selected:!sd.status?"selected":null})].concat(opts.map(function(op){return U.el("option",{value:op,text:op,selected:sd.status===op?"selected":null});})));
+    var dateInput=U.el("input",{type:"date",class:"inline",value:sd.date||"",onchange:function(e){sd.date=e.target.value;persist();}});
+    body.push(U.el("div",{class:"jrow"},[U.el("div",{class:"field"},[U.el("label",{text:"Status"}),statusSel]),U.el("div",{class:"field"},[U.el("label",{text:"Data"}),dateInput])]));
+    body.push(U.el("div",{class:"field",style:"margin-top:8px"},[U.el("label",{text:"Observação"}),U.el("input",{value:sd.note||"",placeholder:"Observação desta etapa...",onchange:function(e){sd.note=e.target.value;persist();}})]));
+    stepsEl.appendChild(U.el("div",{class:"jstep"},[U.el("div",{class:"jdot "+(done?"done":(sd.status?"current":""))},[U.el("span",{text:done?"✓":(sd.status?"●":"")})]),U.el("div",{class:"jbody"+(done?" done":"")},body)]));
   });
-
-  var adminAdd=null;
-  if(isAdmin){
-    adminAdd=U.el("div",{style:"margin-top:12px"},[
-      U.el("button",{class:"btn sec sm",text:"+ Adicionar etapa",onclick:function(){jr.steps.push(baseStep({title:"Nova etapa",type:"status"}));jr.steps[jr.steps.length-1]._custom=true;persist();rerender();}})
-    ]);
-  }
 
   wrap.appendChild(U.el("div",{class:"card"},[
     U.el("div",{style:"display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"},[
       U.el("h3",{text:"Jornada do cliente",style:"margin:0"}),
-      U.el("span",{class:"tag-manual",text:"Preenchimento manual — não é afetado pela sincronização"})
+      U.el("span",{class:"tag-manual",text:"Etapas do ramo "+(c.ramo||"—")+" • preenchimento manual preservado na sincronização"})
     ]),
-    U.el("p",{class:"muted",style:"margin-top:6px",text:isAdmin?"Você é Administrador: pode criar, renomear e excluir etapas.":"Perfil usuário: etapas iniciais são fixas; você preenche status, datas e gerencia as etapas do caminho."}),
-    stepsEl, adminAdd
+    U.el("p",{class:"muted",style:"margin-top:6px",text:"As etapas são definidas nas Configurações (por ramo). Aqui você preenche status, datas e observações."}),
+    stepsEl,
+    getRole()==="admin"?U.el("div",{style:"margin-top:8px"},[U.el("button",{class:"btn sec sm",text:"⚙ Editar etapas deste ramo nas Configurações",onclick:function(){navigate("config");}})]):null
   ]));
   return wrap;
 }
+
 /* Gerenciador de opções de status de uma etapa (incluir/editar/excluir) */
 function statusManager(step,persist,rerender){
   var box=U.el("div",{style:"margin-top:8px;border-top:1px dashed var(--line);padding-top:8px"});
@@ -379,14 +399,86 @@ Pages.integracao=function(){
   var info=U.el("div",{class:"card"},[U.el("h3",{text:"Sobre a sincronização",style:"margin-top:0"}),U.el("p",{class:"muted",text:"A sincronização atualiza somente os dados vindos da API. Tudo que você preenche manualmente (jornada, status, etapas) fica em armazenamento separado e é preservado a cada nova sincronização."}),U.el("p",{class:"muted",text:"Total armazenado: "+State.claims.length+" sinistros."}),State.claims.length?U.el("button",{class:"btn sec sm",text:"Limpar sinistros (mantém edições manuais)",onclick:function(){if(confirm("Apagar os sinistros da API? Suas edições manuais NÃO serão apagadas.")){State.claims=[];saveClaims([]);render();}}}):null]);
   return shell(U.el("div",{},[U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Integração CORP"}),U.el("p",{text:"Conecte-se à API e sincronize os sinistros"})])]),card,info]),"Integração CORP");
 };
-Pages.config=function(){return shell(U.el("div",{},[U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Configurações"})])]),U.el("div",{class:"card"},[U.el("h3",{text:"Dados",style:"margin-top:0"}),U.el("p",{class:"muted",text:"Sinistros: "+State.claims.length+" • Edições manuais salvas: "+Object.keys(loadOvr()).length+" • Token: "+(getToken()?"ativo":"inativo")}),U.el("button",{class:"btn danger sm",text:"Sair (logout)",onclick:function(){setToken("");alert("Sessão encerrada.");render();}})])]),"Configurações");};
+Pages.config=function(){
+  var isAdmin=getRole()==="admin";
+  // garante que todos os ramos presentes nos sinistros existam nos templates
+  State.claims.forEach(function(c){ if(c.ramo) ensureRamoTemplate(c.ramo); });
+  var tpls=loadTemplates();
+  var ramos=Object.keys(tpls).sort();
+
+  var content=[];
+  content.push(U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Configurações"}),U.el("p",{text:"Modelos de jornada por ramo, aplicados a todos os sinistros"})])]));
+
+  // Dados gerais
+  content.push(U.el("div",{class:"card"},[U.el("h3",{text:"Dados",style:"margin-top:0"}),U.el("p",{class:"muted",text:"Sinistros: "+State.claims.length+" • Ramos configurados: "+ramos.length+" • Token: "+(getToken()?"ativo":"inativo")}),U.el("button",{class:"btn danger sm",text:"Sair (logout)",onclick:function(){setToken("");alert("Sessão encerrada.");render();}})]));
+
+  if(!isAdmin){
+    content.push(U.el("div",{class:"card"},[emptyState("Apenas administradores podem editar os modelos de jornada por ramo. Altere o perfil no topo para Administrador.")]));
+    return shell(U.el("div",{},content),"Configurações");
+  }
+
+  // Editor de jornadas por ramo
+  var editor=U.el("div",{class:"card"});
+  function rerenderCfg(){ render(); }
+  editor.appendChild(U.el("h3",{text:"Jornadas por ramo",style:"margin-top:0"}));
+  editor.appendChild(U.el("p",{class:"muted",text:"Defina as etapas e os status de cada caminho (Perda Parcial / Perda Integral). Mudanças aparecem automaticamente em todos os sinistros do ramo."}));
+
+  // adicionar ramo manualmente
+  var novoRamo=U.el("input",{class:"inline",placeholder:"Ex.: RESI, VIDA...",style:"min-width:160px"});
+  editor.appendChild(U.el("div",{style:"display:flex;gap:8px;align-items:center;margin-bottom:14px"},[novoRamo,U.el("button",{class:"btn sec sm",text:"+ Adicionar ramo",onclick:function(){var r=(novoRamo.value||"").trim().toUpperCase();if(r){ensureRamoTemplate(r);rerenderCfg();}}})]));
+
+  if(!ramos.length){ editor.appendChild(emptyState("Nenhum ramo ainda. Sincronize os sinistros ou adicione um ramo manualmente.")); }
+
+  ramos.forEach(function(ramo){
+    var tpl=tpls[ramo];
+    var block=U.el("div",{style:"border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px"});
+    block.appendChild(U.el("h4",{text:"Ramo: "+ramo,style:"margin:0 0 10px"}));
+    ["parcial","integral"].forEach(function(caminho){
+      block.appendChild(U.el("div",{style:"font-weight:600;margin:8px 0;color:var(--brand)",text:caminho==="parcial"?"➤ Perda Parcial":"➤ Perda Integral"}));
+      tpl[caminho].forEach(function(step,i){
+        var row=U.el("div",{style:"background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px"});
+        // título editável + excluir etapa
+        row.appendChild(U.el("div",{style:"display:flex;gap:8px;align-items:center;margin-bottom:8px"},[
+          U.el("input",{class:"inline",value:step.title,style:"font-weight:600;min-width:220px",onchange:function(e){step.title=e.target.value;saveTemplates(tpls);}}),
+          U.el("button",{class:"btn danger xs",text:"Excluir etapa",onclick:function(){tpl[caminho].splice(i,1);saveTemplates(tpls);rerenderCfg();}})
+        ]));
+        // status desta etapa
+        var chips=U.el("div",{style:"display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"});
+        step.statusOptions.forEach(function(op,si){
+          chips.appendChild(U.el("span",{class:"badge gray",style:"gap:6px"},[
+            U.el("span",{text:op}),
+            U.el("a",{text:"✎",onclick:function(){var nv=prompt("Editar status:",op);if(nv){step.statusOptions[si]=nv.trim();saveTemplates(tpls);rerenderCfg();}}}),
+            U.el("a",{text:"✕",style:"color:#dc2626",onclick:function(){step.statusOptions.splice(si,1);saveTemplates(tpls);rerenderCfg();}})
+          ]));
+        });
+        var addSt=U.el("input",{class:"inline",placeholder:"Novo status...",style:"min-width:150px"});
+        row.appendChild(chips);
+        row.appendChild(U.el("div",{style:"display:flex;gap:6px;align-items:center"},[addSt,U.el("button",{class:"btn sec xs",text:"+ Status",onclick:function(){var v=(addSt.value||"").trim();if(v){step.statusOptions.push(v);saveTemplates(tpls);rerenderCfg();}}})]));
+        block.appendChild(row);
+      });
+      var addEt=U.el("input",{class:"inline",placeholder:"Nova etapa...",style:"min-width:180px"});
+      block.appendChild(U.el("div",{style:"display:flex;gap:6px;align-items:center;margin:4px 0 12px"},[addEt,U.el("button",{class:"btn sec xs",text:"+ Etapa",onclick:function(){var v=(addEt.value||"").trim();if(v){tpl[caminho].push({id:U.uid("st"),title:v,statusOptions:STATUS_DEFAULT.slice()});saveTemplates(tpls);rerenderCfg();}}})]));
+    });
+    editor.appendChild(block);
+  });
+
+  content.push(editor);
+  return shell(U.el("div",{},content),"Configurações");
+};
+
 
 /* ---------- SINCRONIZAÇÃO (preserva overrides) ---------- */
 function syncAll(){
   var novos=0,atualizados=0;var byId={};State.claims.forEach(function(c){byId[c.id]=c;});
-  function pagina(p){return CorpAPI.fetchSinistros({pagina:p}).then(function(resp){var arr=Array.isArray(resp)?resp:((resp&&(resp.sinistros||resp.sinistro||resp.dados||resp.data||resp.itens||resp.registros))||[]);arr.forEach(function(raw){var m=mapCorp(raw);if(byId[m.id])atualizados++;else novos++;byId[m.id]=m;});if(arr.length>=100&&p<100)return pagina(p+1);State.claims=Object.keys(byId).map(function(k){return byId[k];});saveClaims(State.claims);return{total:State.claims.length,novos:novos,atualizados:atualizados};});}
+  function pagina(p){return CorpAPI.fetchSinistros({pagina:p}).then(function(resp){
+    var arr=Array.isArray(resp)?resp:((resp&&(resp.sinistros||resp.sinistro||resp.dados||resp.data||resp.itens||resp.registros))||[]);
+    arr.forEach(function(raw){var m=mapCorp(raw);ensureRamoTemplate(m.ramo);if(byId[m.id])atualizados++;else novos++;byId[m.id]=m;});
+    if(arr.length>=100&&p<100)return pagina(p+1);
+    State.claims=Object.keys(byId).map(function(k){return byId[k];});saveClaims(State.claims);
+    return{total:State.claims.length,novos:novos,atualizados:atualizados};});}
   return pagina(1);
 }
+
 function exportCSV(){var cols=["numsin","segurado","placa","cia","ramo","situacao","numapo","datoco","datavi","datenc","valavi","valind","franquia","responsavel","oficina"];var head=cols.join(";");var lines=State.claims.map(function(c){return cols.map(function(k){var v=c[k];if(/^dat/.test(k))v=U.fmtDateBR(v);return '"'+String(v==null?"":v).replace(/"/g,'""')+'"';}).join(";");});var blob=new Blob(["\ufeff"+head+"\n"+lines.join("\n")],{type:"text/csv;charset=utf-8;"});var a=U.el("a",{href:URL.createObjectURL(blob),download:"sinistros_corp.csv"});document.body.appendChild(a);a.click();a.remove();}
 
 function render(){var root=document.getElementById("root");root.innerHTML="";(Pages[State.route]||Pages.dashboard)().childNodes;root.appendChild((Pages[State.route]||Pages.dashboard)());}

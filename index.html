@@ -5,93 +5,71 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sinistro360 — Integração CORP</title>
 <style>
-:root{
-  --bg:#f5f7fb; --card:#fff; --ink:#1e293b; --muted:#64748b; --line:#e2e8f0;
-  --brand:#2563eb; --brand-dark:#1e293b; --ok:#16a34a; --warn:#f59e0b; --danger:#dc2626;
-  --chip:#eff6ff; --chip-ink:#2563eb; --sidebar:#0f172a; --sidebar-ink:#cbd5e1;
-}
+:root{--bg:#f5f7fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--line:#e2e8f0;--brand:#2563eb;--ok:#16a34a;--warn:#f59e0b;--danger:#dc2626;--sidebar:#0f172a;--sidebar-ink:#cbd5e1;}
 *{box-sizing:border-box}
-body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
-a{color:var(--brand);text-decoration:none}
+body{margin:0;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+a{color:var(--brand);text-decoration:none;cursor:pointer}
 .hidden{display:none!important}
-/* Layout */
 .app{display:flex;min-height:100vh}
-.sidebar{width:230px;background:var(--sidebar);color:var(--sidebar-ink);flex-shrink:0;display:flex;flex-direction:column;padding:0}
+.sidebar{width:230px;background:var(--sidebar);color:var(--sidebar-ink);flex-shrink:0;display:flex;flex-direction:column}
 .sidebar .brand{padding:18px 20px;font-size:18px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;border-bottom:1px solid #1e293b}
 .sidebar nav{padding:10px 0;flex:1}
-.sidebar nav a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:var(--sidebar-ink);font-size:14px;cursor:pointer}
+.sidebar nav a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:var(--sidebar-ink);font-size:14px}
 .sidebar nav a:hover{background:#1e293b;color:#fff}
 .sidebar nav a.active{background:var(--brand);color:#fff}
 .sidebar .ver{padding:12px 20px;font-size:11px;color:#475569}
 .main{flex:1;display:flex;flex-direction:column;min-width:0}
-.topbar{background:#fff;border-bottom:1px solid var(--line);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.topbar{background:#fff;border-bottom:1px solid var(--line);padding:10px 24px;display:flex;align-items:center;justify-content:space-between}
 .topbar .crumb{color:var(--muted);font-size:13px}
-.topbar .user{display:flex;align-items:center;gap:10px;font-size:13px}
+.topbar .user{display:flex;align-items:center;gap:12px;font-size:13px}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600}
 .content{padding:24px;overflow:auto}
-/* Componentes */
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px}
 .page-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
-.page-head h1{margin:0;font-size:22px}
-.page-head p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.page-head h1{margin:0;font-size:22px}.page-head p{margin:4px 0 0;color:var(--muted);font-size:13px}
 .btn{background:var(--brand);color:#fff;border:none;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
-.btn:hover{opacity:.92}
-.btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn:hover{opacity:.92}.btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
 .btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand)}
-.btn.sm{padding:5px 12px;font-size:12px}
-.btn.danger{background:var(--danger)}
+.btn.sm{padding:5px 11px;font-size:12px}.btn.xs{padding:3px 8px;font-size:11px}.btn.danger{background:var(--danger)}.btn.ok{background:var(--ok)}
 input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;background:#fff}
+select.inline,input.inline{width:auto;display:inline-block}
 label{display:block;font-size:12px;color:var(--muted);margin:0 0 5px;font-weight:600}
 .field{margin-bottom:14px}
-.grid{display:grid;gap:14px}
-.grid.c2{grid-template-columns:1fr 1fr}
-.grid.c3{grid-template-columns:1fr 1fr 1fr}
-.grid.c4{grid-template-columns:repeat(4,1fr)}
+.grid{display:grid;gap:14px}.grid.c2{grid-template-columns:1fr 1fr}.grid.c3{grid-template-columns:1fr 1fr 1fr}.grid.c4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:900px){.grid.c2,.grid.c3,.grid.c4{grid-template-columns:1fr}}
-/* Chips / filtros */
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 .chip-btn{background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;color:var(--muted)}
 .chip-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
 .badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
-.badge.blue{background:#eff6ff;color:#2563eb}.badge.green{background:#dcfce7;color:#16a34a}
-.badge.amber{background:#fef3c7;color:#b45309}.badge.red{background:#fee2e2;color:#dc2626}
-.badge.gray{background:#f1f5f9;color:#64748b}.badge.purple{background:#f3e8ff;color:#9333ea}
-/* Tabela */
+.badge.blue{background:#eff6ff;color:#2563eb}.badge.green{background:#dcfce7;color:#16a34a}.badge.amber{background:#fef3c7;color:#b45309}.badge.red{background:#fee2e2;color:#dc2626}.badge.gray{background:#f1f5f9;color:#64748b}.badge.purple{background:#f3e8ff;color:#9333ea}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
 .toolbar input,.toolbar select{width:auto;min-width:150px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:10px 12px;color:var(--muted);font-weight:600;border-bottom:2px solid var(--line);white-space:nowrap}
 td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
-tr:hover td{background:#f8fafc}
-.mono{font-variant-numeric:tabular-nums}
-/* Detalhe */
+tr:hover td{background:#f8fafc}.mono{font-variant-numeric:tabular-nums}.right{text-align:right}
 .detail-head{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
-.detail-head h1{margin:0 0 6px;font-size:20px}
-.detail-head .sub{color:var(--muted);font-size:13px}
+.detail-head h1{margin:0 0 6px;font-size:20px}.detail-head .sub{color:var(--muted);font-size:13px}
 .detail-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
 .tabs .tab{padding:10px 16px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;border-bottom:2px solid transparent}
 .tabs .tab.active{color:var(--brand);border-bottom-color:var(--brand)}
-.kv{display:grid;grid-template-columns:200px 1fr;gap:2px 16px}
+.kv{display:grid;grid-template-columns:210px 1fr;gap:2px 16px}
 .kv dt{color:var(--muted);padding:8px 0;font-size:12px;border-bottom:1px solid #f1f5f9}
 .kv dd{margin:0;padding:8px 0;font-size:13px;border-bottom:1px solid #f1f5f9;word-break:break-word}
-/* Jornada / Timeline */
-.journey{position:relative;padding-left:8px}
-.jstep{display:flex;gap:14px;position:relative;padding-bottom:22px}
-.jstep::before{content:"";position:absolute;left:11px;top:26px;bottom:-4px;width:2px;background:var(--line)}
+.journey{position:relative}
+.jstep{display:flex;gap:14px;position:relative;padding-bottom:20px}
+.jstep::before{content:"";position:absolute;left:13px;top:30px;bottom:-2px;width:2px;background:var(--line)}
 .jstep:last-child::before{display:none}
-.jdot{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;background:var(--line);z-index:1}
-.jdot.done{background:var(--ok)}.jdot.current{background:var(--brand);box-shadow:0 0 0 4px #dbeafe}.jdot.pending{background:#cbd5e1}
-.jbody{flex:1;padding-top:1px}
-.jbody h4{margin:0 0 3px;font-size:14px}
-.jbody .jmeta{color:var(--muted);font-size:12px}
-.jbody .jdate{color:var(--ok);font-size:12px;font-weight:600}
-/* Login */
-.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a,#1e3a8a)}
-.login-box{background:#fff;border-radius:16px;padding:36px;width:380px;max-width:92vw}
-.login-box h1{margin:0 0 4px;font-size:22px}
-.login-box p{margin:0 0 22px;color:var(--muted);font-size:13px}
+.jdot{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:#cbd5e1;z-index:1;margin-top:2px}
+.jdot.done{background:var(--ok)}.jdot.current{background:var(--brand);box-shadow:0 0 0 4px #dbeafe}
+.jbody{flex:1;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.jbody.done{background:#f0fdf4;border-color:#bbf7d0}
+.jhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.jbody h4{margin:0;font-size:14px}
+.jrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.jrow .field{margin:0}
 .status{padding:10px 12px;border-radius:8px;font-size:13px;margin-top:12px}
 .status.ok{background:#dcfce7;color:#166534}.status.err{background:#fee2e2;color:#991b1b}.status.info{background:#eff6ff;color:#1e40af}
 .stat-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
@@ -99,526 +77,320 @@ tr:hover td{background:#f8fafc}
 .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
 .stat .n{font-size:26px;font-weight:700}.stat .l{color:var(--muted);font-size:12px;margin-top:2px}
 .muted{color:var(--muted)}
-.right{text-align:right}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
+.tag-manual{background:#fef9c3;color:#854d0e;font-size:10px;padding:2px 6px;border-radius:5px;font-weight:600;margin-left:6px}
 </style>
 </head>
 <body>
 <div id="root"></div>
-
 <script>
-/* =========================================================================
-   Sinistro360 — versão reconstruída focada na integração com a API CORP
-   Campos reais da API (do _raw): codfil, nosnum, tipo, cia, ramo, codigo,
-   numapo, numend, item, valavi, valind, segurado, numsin, datavi, datoco,
-   datenc, situacao, placa, franquia, responsavel, oficina, tipo_atendimento,
-   descricao, observacoes, proxima_agenda, agendamento, datvis, datlib, valdes
-   ========================================================================= */
-
-/* ---------- Utilitários ---------- */
-var U = {
-  el:function(tag,attrs,children){
-    var e=document.createElement(tag); attrs=attrs||{};
-    for(var k in attrs){
-      if(k==="text") e.textContent=attrs[k];
-      else if(k==="html") e.innerHTML=attrs[k];
-      else if(k==="class") e.className=attrs[k];
-      else if(k.indexOf("on")===0 && typeof attrs[k]==="function") e.addEventListener(k.slice(2).toLowerCase(),attrs[k]);
-      else if(attrs[k]!=null) e.setAttribute(k,attrs[k]);
-    }
-    (children||[]).forEach(function(c){ if(c!=null) e.appendChild(typeof c==="string"?document.createTextNode(c):c); });
-    return e;
-  },
-  uid:function(p){return (p||"id")+"_"+Math.random().toString(36).slice(2,9);},
-  fmtDateBR:function(iso){ if(!iso) return "—"; var m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[3]+"/"+m[2]+"/"+m[1]):iso; },
-  isoFromBR:function(v){ if(!v) return ""; v=String(v).trim(); var m=v.match(/^(\d{2})\/(\d{2})\/(\d{4})/); if(m) return m[3]+"-"+m[2]+"-"+m[1]; var i=v.match(/^(\d{4})-(\d{2})-(\d{2})/); return i?(i[1]+"-"+i[2]+"-"+i[3]):""; },
-  todayISO:function(){var d=new Date();return d.toISOString().slice(0,10);},
-  money:function(v){ v=Number(v)||0; return v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); },
-  val:function(v){ return (v==null||v===""||v==="0"||v===0)?"—":v; },
-  txt:function(v){ return (v==null||v==="")?"—":String(v); }
+/* ==========================================================================
+   Sinistro360 v3 — integração CORP + Jornada editável (Parcial/Integral)
+   ATENÇÃO: dados da API ficam em corp_claims; edições manuais (jornada,
+   overrides) ficam em corp_overrides, indexadas por codfil-nosnum, e são
+   REAPLICADAS após cada sincronização — nunca se perdem.
+   ========================================================================== */
+var U={
+  el:function(t,a,c){var e=document.createElement(t);a=a||{};for(var k in a){if(k==="text")e.textContent=a[k];else if(k==="html")e.innerHTML=a[k];else if(k==="class")e.className=a[k];else if(k.indexOf("on")===0&&typeof a[k]==="function")e.addEventListener(k.slice(2).toLowerCase(),a[k]);else if(a[k]!=null)e.setAttribute(k,a[k]);}(c||[]).forEach(function(x){if(x!=null)e.appendChild(typeof x==="string"?document.createTextNode(x):x);});return e;},
+  uid:function(p){return(p||"id")+"_"+Math.random().toString(36).slice(2,9);},
+  fmtDateBR:function(iso){if(!iso)return"—";var m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);return m?(m[3]+"/"+m[2]+"/"+m[1]):iso;},
+  isoFromBR:function(v){if(!v)return"";v=String(v).trim();var m=v.match(/^(\d{2})\/(\d{2})\/(\d{4})/);if(m)return m[3]+"-"+m[2]+"-"+m[1];var i=v.match(/^(\d{4})-(\d{2})-(\d{2})/);return i?(i[1]+"-"+i[2]+"-"+i[3]):"";},
+  todayISO:function(){return new Date().toISOString().slice(0,10);},
+  money:function(v){v=Number(v)||0;return v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});},
+  val:function(v){return(v==null||v===""||v==="0"||v===0)?"—":v;},
+  txt:function(v){return(v==null||v==="")?"—":String(v);}
 };
+var CFG_KEY="corp_cfg",TOKEN_KEY="corp_token",DATA_KEY="corp_claims",OVR_KEY="corp_overrides",ROLE_KEY="corp_role";
+function getCfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY))||{};}catch(e){return{};}}
+function setCfg(c){localStorage.setItem(CFG_KEY,JSON.stringify(c));}
+function getToken(){return localStorage.getItem(TOKEN_KEY)||"";}
+function setToken(t){if(t)localStorage.setItem(TOKEN_KEY,t);else localStorage.removeItem(TOKEN_KEY);}
+function loadClaims(){try{return JSON.parse(localStorage.getItem(DATA_KEY))||[];}catch(e){return[];}}
+function saveClaims(a){localStorage.setItem(DATA_KEY,JSON.stringify(a));}
+/* ---- Overrides (edições manuais que NUNCA se perdem) ---- */
+function loadOvr(){try{return JSON.parse(localStorage.getItem(OVR_KEY))||{};}catch(e){return{};}}
+function saveOvr(o){localStorage.setItem(OVR_KEY,JSON.stringify(o));}
+function getOvr(id){var o=loadOvr();return o[id]||{};}
+function setOvr(id,patch){var o=loadOvr();o[id]=Object.assign({},o[id],patch);saveOvr(o);}
+function getRole(){return localStorage.getItem(ROLE_KEY)||"admin";}
+function setRole(r){localStorage.setItem(ROLE_KEY,r);}
 
-/* ---------- Configuração / storage ---------- */
-var CFG_KEY="corp_cfg", TOKEN_KEY="corp_token", DATA_KEY="corp_claims";
-function getCfg(){ try{return JSON.parse(localStorage.getItem(CFG_KEY))||{};}catch(e){return {};} }
-function setCfg(c){ localStorage.setItem(CFG_KEY,JSON.stringify(c)); }
-function getToken(){ return localStorage.getItem(TOKEN_KEY)||""; }
-function setToken(t){ if(t) localStorage.setItem(TOKEN_KEY,t); else localStorage.removeItem(TOKEN_KEY); }
-function loadClaims(){ try{return JSON.parse(localStorage.getItem(DATA_KEY))||[];}catch(e){return [];} }
-function saveClaims(a){ localStorage.setItem(DATA_KEY,JSON.stringify(a)); }
-
-/* ---------- Camada de API CORP ---------- */
+/* ---------- API CORP ---------- */
 var CorpAPI=(function(){
-  function base(){ var u=(getCfg().url||"").trim().replace(/\/+$/,""); if(u && !/^https?:\/\//.test(u)) u="https://"+u; return u; }
-  function request(path,opts){
-    opts=opts||{};
-    var headers={};
-    if(opts.body) headers["Content-Type"]="application/json";
-    if(opts.auth!==false){ var t=getToken(); if(t) headers["Authorization"]=t; }
-    return fetch(base()+path,{
-      method:opts.method||"GET",
-      headers:headers,
-      body:opts.body?JSON.stringify(opts.body):undefined
-    }).then(function(r){
-      return r.text().then(function(txt){
-        var data; try{data=JSON.parse(txt);}catch(e){data=txt;}
-        if(!r.ok){ var msg=(data&&data.message)||(data&&data.mensagem)||("HTTP "+r.status); var err=new Error(msg); err.status=r.status; err.data=data; throw err; }
-        return data;
-      });
-    });
-  }
-  function login(){
-    var c=getCfg();
-    return request("/login",{method:"POST",auth:false,body:{email:c.email,senha:c.senha,aplicacao:Number(c.aplicacao||0)}})
-      .then(function(resp){
-        var token=resp&&(resp.token||resp.access_token||(resp.dados&&resp.dados.token)||(resp.data&&resp.data.token));
-        if(!token) throw new Error("Login sem token na resposta.");
-        setToken(token); return token;
-      });
-  }
-  function withAuth(fn){
-    if(!getToken()) return login().then(fn);
-    return fn().catch(function(e){ if(e.status===401){ setToken(""); return login().then(fn); } throw e; });
-  }
-  function fetchSinistros(params){
-    params=params||{};
-    var hoje=new Date(), ini=new Date(); ini.setFullYear(hoje.getFullYear()-5);
-    function br(d){var dd=("0"+d.getDate()).slice(-2),mm=("0"+(d.getMonth()+1)).slice(-2);return dd+"/"+mm+"/"+d.getFullYear();}
-    var def={tipo_sinistro:"S",data_inicial:br(ini),data_final:br(hoje),tipo_data:"OCO",situacao:"T",qtd_pag:100,pagina:1};
-    for(var k in params) def[k]=params[k];
-    var qs=Object.keys(def).map(function(k){return encodeURIComponent(k)+"="+encodeURIComponent(def[k]);}).join("&");
-    return withAuth(function(){ return request("/sinistros?"+qs,{method:"GET"}); });
-  }
-  function testConnection(){ setToken(""); return login().then(function(){return true;}); }
-  return {login:login,fetchSinistros:fetchSinistros,testConnection:testConnection,base:base};
+  function base(){var u=(getCfg().url||"").trim().replace(/\/+$/,"");if(u&&!/^https?:\/\//.test(u))u="https://"+u;return u;}
+  function request(path,opts){opts=opts||{};var h={};if(opts.body)h["Content-Type"]="application/json";if(opts.auth!==false){var t=getToken();if(t)h["Authorization"]=t;}
+    return fetch(base()+path,{method:opts.method||"GET",headers:h,body:opts.body?JSON.stringify(opts.body):undefined}).then(function(r){
+      return r.text().then(function(txt){var d;try{d=JSON.parse(txt);}catch(e){d=txt;}if(!r.ok){var m=(d&&(d.message||d.mensagem))||("HTTP "+r.status);var er=new Error(m);er.status=r.status;er.data=d;throw er;}return d;});});}
+  function login(){var c=getCfg();return request("/login",{method:"POST",auth:false,body:{email:c.email,senha:c.senha,aplicacao:Number(c.aplicacao||0)}}).then(function(resp){var tk=resp&&(resp.token||resp.access_token||(resp.dados&&resp.dados.token)||(resp.data&&resp.data.token));if(!tk)throw new Error("Login sem token na resposta.");setToken(tk);return tk;});}
+  function withAuth(fn){if(!getToken())return login().then(fn);return fn().catch(function(e){if(e.status===401){setToken("");return login().then(fn);}throw e;});}
+  function fetchSinistros(params){params=params||{};var hj=new Date(),ini=new Date();ini.setFullYear(hj.getFullYear()-5);function br(d){var dd=("0"+d.getDate()).slice(-2),mm=("0"+(d.getMonth()+1)).slice(-2);return dd+"/"+mm+"/"+d.getFullYear();}var def={tipo_sinistro:"S",data_inicial:br(ini),data_final:br(hj),tipo_data:"OCO",situacao:"T",qtd_pag:100,pagina:1};for(var k in params)def[k]=params[k];var qs=Object.keys(def).map(function(k){return encodeURIComponent(k)+"="+encodeURIComponent(def[k]);}).join("&");return withAuth(function(){return request("/sinistros?"+qs,{method:"GET"});});}
+  function testConnection(){setToken("");return login().then(function(){return true;});}
+  return{login:login,fetchSinistros:fetchSinistros,testConnection:testConnection,base:base};
 })();
 
-/* ---------- Mapeamento CORP -> registro interno (TODOS os campos) ---------- */
-function mapSituacao(s){
-  s=String(s||"").toUpperCase();
-  if(s.indexOf("INDENIZ")>=0) return {label:"Indenizado",cls:"green"};
-  if(s.indexOf("ENCERR")>=0)  return {label:"Encerrado",cls:"gray"};
-  if(s.indexOf("ANDAMENTO")>=0)return {label:"Em andamento",cls:"amber"};
-  if(s.indexOf("PENDENTE")>=0) return {label:"Pendente",cls:"amber"};
-  if(s.indexOf("NEGAD")>=0||s.indexOf("RECUS")>=0) return {label:"Negado",cls:"red"};
-  if(s.indexOf("ABERT")>=0)    return {label:"Aberto",cls:"blue"};
-  return {label:(s||"—"),cls:"blue"};
-}
-function mapCorp(c){
-  return {
-    id:"clm_"+(c.codfil||"0")+"_"+(c.nosnum||U.uid("")),
-    // Identificação
-    codfil:c.codfil, nosnum:c.nosnum, numsin:c.numsin||"", tipo:c.tipo||"", codigo:c.codigo,
-    // Cliente
-    segurado:c.segurado||"", cpfcnpj:c.cpfcnpj||c.documento||"",
-    // Apólice / produto
-    cia:c.cia||"", ramo:c.ramo||"", numapo:c.numapo||"", numend:c.numend||"", item:c.item,
-    // Veículo
-    placa:c.placa||"",
-    // Situação / valores
-    situacao:c.situacao||"", franquia:Number(c.franquia)||0,
-    valavi:Number(c.valavi)||0, valind:Number(c.valind)||0, valdes:Number(c.valdes)||0,
-    // Datas
-    datavi:U.isoFromBR(c.datavi), datoco:U.isoFromBR(c.datoco), datenc:U.isoFromBR(c.datenc),
-    datvis:U.isoFromBR(c.datvis), datlib:U.isoFromBR(c.datlib),
-    proxima_agenda:U.isoFromBR(c.proxima_agenda), agendamento:U.isoFromBR(c.agendamento),
-    // Atendimento
-    responsavel:c.responsavel||"", oficina:c.oficina?String(c.oficina).trim():"",
-    tipo_atendimento:c.tipo_atendimento||"", descricao:c.descricao||"", observacoes:c.observacoes||"",
-    _raw:c
-  };
-}
+function mapSituacao(s){s=String(s||"").toUpperCase();if(s.indexOf("INDENIZ")>=0)return{label:"Indenizado",cls:"green"};if(s.indexOf("ENCERR")>=0)return{label:"Encerrado",cls:"gray"};if(s.indexOf("ANDAMENTO")>=0)return{label:"Em andamento",cls:"amber"};if(s.indexOf("PENDENTE")>=0)return{label:"Pendente",cls:"amber"};if(s.indexOf("NEGAD")>=0||s.indexOf("RECUS")>=0)return{label:"Negado",cls:"red"};if(s.indexOf("ABERT")>=0)return{label:"Aberto",cls:"blue"};return{label:(s||"—"),cls:"blue"};}
+function mapCorp(c){return{id:"clm_"+(c.codfil||"0")+"_"+(c.nosnum||U.uid("")),codfil:c.codfil,nosnum:c.nosnum,numsin:c.numsin||"",tipo:c.tipo||"",codigo:c.codigo,segurado:c.segurado||"",cia:c.cia||"",ramo:c.ramo||"",numapo:c.numapo||"",numend:c.numend||"",item:c.item,placa:c.placa||"",situacao:c.situacao||"",franquia:Number(c.franquia)||0,valavi:Number(c.valavi)||0,valind:Number(c.valind)||0,valdes:Number(c.valdes)||0,datavi:U.isoFromBR(c.datavi),datoco:U.isoFromBR(c.datoco),datenc:U.isoFromBR(c.datenc),datvis:U.isoFromBR(c.datvis),datlib:U.isoFromBR(c.datlib),proxima_agenda:U.isoFromBR(c.proxima_agenda),agendamento:U.isoFromBR(c.agendamento),responsavel:c.responsavel||"",oficina:c.oficina?String(c.oficina).trim():"",tipo_atendimento:c.tipo_atendimento||"",descricao:c.descricao||"",observacoes:c.observacoes||"",_raw:c};}
 
-/* ---------- Jornada do cliente (etapas derivadas dos dados da API) ---------- */
-function buildJourney(c){
-  var steps=[
-    {key:"aviso",   title:"Aviso de sinistro",        date:c.datavi, meta:"Sinistro comunicado à seguradora"},
-    {key:"ocorr",   title:"Ocorrência registrada",    date:c.datoco, meta:"Data do evento"},
-    {key:"vistoria",title:"Vistoria",                 date:c.datvis, meta:c.oficina?("Oficina: "+c.oficina):"Vistoria do veículo"},
-    {key:"analise", title:"Análise / atendimento",    date:c.agendamento, meta:(c.responsavel?("Responsável: "+c.responsavel):"Em análise")},
-    {key:"liberacao",title:"Liberação",               date:c.datlib, meta:"Liberação do processo"},
-    {key:"encerr",  title:"Encerramento",             date:c.datenc, meta:mapSituacao(c.situacao).label}
-  ];
-  // marca estado de cada etapa
-  var lastDoneIdx=-1;
-  steps.forEach(function(s,i){ if(s.date) lastDoneIdx=i; });
-  steps.forEach(function(s,i){
-    if(s.date) s.state=(i<lastDoneIdx?"done":"done");
-    else s.state=(i===lastDoneIdx+1?"current":"pending");
+/* ==========================================================================
+   JORNADA — definição de etapas por caminho
+   ========================================================================== */
+var STATUS_DEFAULT=["Aguardando","Em andamento","Concluído"];
+function stepsFixed(){ return [
+  {id:"vistoria",title:"Vistoria",fixed:true,type:"status"},
+  {id:"caminho",title:"Definir caminho (Perda Parcial / Perda Integral)",fixed:true,type:"caminho"}
+];}
+function stepsParcial(){ return [
+  {id:"rep_autorizados",title:"Reparos autorizados",type:"status"},
+  {id:"pecas",title:"Peças",type:"status"},
+  {id:"reparo",title:"Reparo",type:"status"},
+  {id:"conclusao",title:"Conclusão",type:"status"}
+];}
+function stepsIntegral(){ return [
+  {id:"documentacao",title:"Documentação",type:"status"},
+  {id:"transf",title:"Transf. do veículo",type:"status"},
+  {id:"analise_final",title:"Análise final",type:"status"},
+  {id:"conclusao",title:"Conclusão",type:"status"}
+];}
+/* Monta a jornada efetiva a partir do override salvo */
+function getJourney(claimId){
+  var ovr=getOvr(claimId);
+  var jr=ovr.journey;
+  if(!jr){
+    jr={caminho:"",steps:stepsFixed().map(function(s){return baseStep(s);})};
+  }
+  return jr;
+}
+function baseStep(def){
+  return {id:def.id||U.uid("st"),title:def.title,fixed:!!def.fixed,type:def.type||"status",
+    statusOptions:def.statusOptions||STATUS_DEFAULT.slice(),status:def.status||"",date:def.date||"",note:def.note||""};
+}
+function saveJourney(claimId,jr){ setOvr(claimId,{journey:jr}); }
+/* Recalcula etapas quando muda o caminho, preservando o que já existe */
+function applyCaminho(jr,caminho){
+  jr.caminho=caminho;
+  var fixed=jr.steps.filter(function(s){return s.fixed;});
+  var extra=(caminho==="parcial"?stepsParcial():caminho==="integral"?stepsIntegral():[]);
+  // preserva status/date/opções de etapas já existentes com mesmo id
+  var existingById={};jr.steps.forEach(function(s){existingById[s.id]=s;});
+  var novos=extra.map(function(def){
+    if(existingById[def.id]) return existingById[def.id];
+    return baseStep(def);
   });
-  // Se encerrado/indenizado, tudo concluído
-  var sit=mapSituacao(c.situacao).label;
-  if(sit==="Indenizado"||sit==="Encerrado"){ steps.forEach(function(s){s.state="done";}); }
-  return steps;
+  // mantém também etapas customizadas criadas pelo admin (não fixas e não do template)
+  var templateIds=extra.map(function(d){return d.id;});
+  var custom=jr.steps.filter(function(s){return !s.fixed && templateIds.indexOf(s.id)<0 && (s._custom);});
+  jr.steps=fixed.concat(novos).concat(custom);
+  return jr;
 }
 
-/* =========================================================================
-   ESTADO DA APLICAÇÃO E ROTEAMENTO
-   ========================================================================= */
-var State={ route:"dashboard", param:null, claims:loadClaims(), session:{name:"Marina Costa",role:"Administrador"} };
+/* ==========================================================================
+   ESTADO / ROTEAMENTO
+   ========================================================================== */
+var State={route:"dashboard",param:null,claims:loadClaims(),session:{name:"Marina Costa"}};
+function navigate(r,p){State.route=r;State.param=p||null;location.hash="#/"+r+(p?"/"+p:"");render();}
+window.addEventListener("hashchange",function(){var h=location.hash.replace(/^#\//,"").split("/");if(h[0]!==State.route||(h[1]||null)!==State.param){State.route=h[0]||"dashboard";State.param=h[1]||null;render();}});
 
-function navigate(route,param){ State.route=route; State.param=param||null; location.hash="#/"+route+(param?"/"+param:""); render(); }
-window.addEventListener("hashchange",function(){
-  var h=location.hash.replace(/^#\//,"").split("/");
-  if(h[0] && h[0]!==State.route || (h[1]||null)!==State.param){ State.route=h[0]||"dashboard"; State.param=h[1]||null; render(); }
-});
-
-/* =========================================================================
-   SHELL (sidebar + topbar)
-   ========================================================================= */
-var MENU=[
-  ["dashboard","Dashboard","▣"],
-  ["sinistros","Sinistros","⚠"],
-  ["clientes","Clientes","☺"],
-  ["seguradoras","Seguradoras","⛨"],
-  ["oficinas","Oficinas/Prestadores","⚒"],
-  ["relatorios","Relatórios","▦"],
-  ["integracao","Integração CORP","⟳"],
-  ["config","Configurações","⚙"]
-];
+var MENU=[["dashboard","Dashboard","▣"],["sinistros","Sinistros","⚠"],["clientes","Clientes","☺"],["seguradoras","Seguradoras","⛨"],["oficinas","Oficinas/Prestadores","⚒"],["relatorios","Relatórios","▦"],["integracao","Integração CORP","⟳"],["config","Configurações","⚙"]];
 function shell(inner,crumb){
-  var nav=U.el("nav",{}, MENU.map(function(m){
-    return U.el("a",{class:(State.route===m[0]?"active":""),onclick:function(){navigate(m[0]);}},[
-      U.el("span",{text:m[2]}), U.el("span",{text:m[1]})
-    ]);
-  }));
-  var side=U.el("div",{class:"sidebar"},[
-    U.el("div",{class:"brand"},[U.el("span",{text:"◆"}),U.el("span",{text:"Sinistro360"})]),
-    nav,
-    U.el("div",{class:"ver",text:"v2.0 • Integração CORP"})
+  var nav=U.el("nav",{},MENU.map(function(m){return U.el("a",{class:(State.route===m[0]?"active":""),onclick:function(){navigate(m[0]);}},[U.el("span",{text:m[2]}),U.el("span",{text:m[1]})]);}));
+  var side=U.el("div",{class:"sidebar"},[U.el("div",{class:"brand"},[U.el("span",{text:"◆"}),U.el("span",{text:"Sinistro360"})]),nav,U.el("div",{class:"ver",text:"v3.0 • Integração CORP"})]);
+  var roleSel=U.el("select",{class:"inline",onchange:function(e){setRole(e.target.value);render();}},[
+    U.el("option",{value:"admin",text:"Perfil: Administrador",selected:getRole()==="admin"?"selected":null}),
+    U.el("option",{value:"user",text:"Perfil: Usuário comum",selected:getRole()==="user"?"selected":null})
   ]);
   var initials=State.session.name.split(" ").map(function(w){return w[0];}).slice(0,2).join("");
-  var top=U.el("div",{class:"topbar"},[
-    U.el("div",{class:"crumb",text:"Sinistro360 › "+(crumb||"")}),
-    U.el("div",{class:"user"},[
-      U.el("div",{},[U.el("div",{text:State.session.name,style:"font-weight:600"}),U.el("div",{class:"muted",style:"font-size:11px",text:State.session.role})]),
-      U.el("div",{class:"avatar",text:initials})
-    ])
-  ]);
-  var main=U.el("div",{class:"main"},[top,U.el("div",{class:"content"},[inner])]);
-  return U.el("div",{class:"app"},[side,main]);
+  var top=U.el("div",{class:"topbar"},[U.el("div",{class:"crumb",text:"Sinistro360 › "+(crumb||"")}),U.el("div",{class:"user"},[roleSel,U.el("div",{class:"avatar",text:initials})])]);
+  return U.el("div",{class:"app"},[side,U.el("div",{class:"main"},[top,U.el("div",{class:"content"},[inner])])]);
 }
+function emptyState(m){return U.el("div",{class:"muted",style:"padding:30px;text-align:center",text:m});}
+function stat(n,l){return U.el("div",{class:"stat"},[U.el("div",{class:"n",text:String(n)}),U.el("div",{class:"l",text:l})]);}
 
-/* =========================================================================
-   PÁGINAS
-   ========================================================================= */
 var Pages={};
-
-/* ----- Dashboard ----- */
 Pages.dashboard=function(){
-  var cs=State.claims;
-  var byStatus={};
-  cs.forEach(function(c){ var l=mapSituacao(c.situacao).label; byStatus[l]=(byStatus[l]||0)+1; });
+  var cs=State.claims,byStatus={};cs.forEach(function(c){var l=mapSituacao(c.situacao).label;byStatus[l]=(byStatus[l]||0)+1;});
   var totalInd=cs.reduce(function(a,c){return a+(c.valind||0);},0);
-  var cards=U.el("div",{class:"stat-cards"},[
-    stat(cs.length,"Sinistros sincronizados"),
-    stat(byStatus["Em andamento"]||0,"Em andamento"),
-    stat(byStatus["Indenizado"]||0,"Indenizados"),
-    stat(U.money(totalInd),"Total indenizado")
-  ]);
-  var recent=U.el("div",{class:"card"},[
-    U.el("h3",{text:"Últimos sinistros",style:"margin-top:0"}),
-    cs.length?claimsTable(cs.slice(0,8)):emptyState("Nenhum sinistro sincronizado ainda.")
-  ]);
   return shell(U.el("div",{},[
     U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Dashboard"}),U.el("p",{text:"Visão geral dos sinistros importados da API CORP"})])]),
-    cards, recent
+    U.el("div",{class:"stat-cards"},[stat(cs.length,"Sinistros sincronizados"),stat(byStatus["Em andamento"]||0,"Em andamento"),stat(byStatus["Indenizado"]||0,"Indenizados"),stat(U.money(totalInd),"Total indenizado")]),
+    U.el("div",{class:"card"},[U.el("h3",{text:"Últimos sinistros",style:"margin-top:0"}),cs.length?claimsTable(cs.slice(0,8)):emptyState("Nenhum sinistro sincronizado ainda.")])
   ]),"Dashboard");
 };
-function stat(n,l){ return U.el("div",{class:"stat"},[U.el("div",{class:"n",text:String(n)}),U.el("div",{class:"l",text:l})]); }
-function emptyState(msg){ return U.el("div",{class:"muted",style:"padding:30px;text-align:center",text:msg}); }
-
-/* ----- Lista de Sinistros ----- */
 var listFilter={status:"todos",q:""};
 Pages.sinistros=function(){
   var chips=[["todos","Todos"],["Aberto","Abertos"],["Em andamento","Em andamento"],["Pendente","Pendentes"],["Indenizado","Indenizados"],["Encerrado","Encerrados"],["Negado","Negados"]];
-  var chipRow=U.el("div",{class:"chips"},chips.map(function(c){
-    return U.el("div",{class:"chip-btn"+(listFilter.status===c[0]?" active":""),text:c[1],onclick:function(){listFilter.status=c[0];render();}});
-  }));
-  var search=U.el("input",{placeholder:"Buscar por segurado, placa, nº sinistro, apólice...",value:listFilter.q,oninput:function(e){listFilter.q=e.target.value;renderList();}});
-  var toolbar=U.el("div",{class:"toolbar"},[search,
-    U.el("button",{class:"btn sec sm",text:"Exportar CSV",onclick:exportCSV}),
-    U.el("button",{class:"btn ghost sm",text:"↻ Sincronizar agora",onclick:function(){navigate("integracao");}})
-  ]);
+  var chipRow=U.el("div",{class:"chips"},chips.map(function(c){return U.el("div",{class:"chip-btn"+(listFilter.status===c[0]?" active":""),text:c[1],onclick:function(){listFilter.status=c[0];render();}});}));
   var listWrap=U.el("div",{id:"listWrap"});
-  function renderList(){
-    var q=listFilter.q.toLowerCase();
-    var rows=State.claims.filter(function(c){
-      if(listFilter.status!=="todos" && mapSituacao(c.situacao).label!==listFilter.status) return false;
-      if(!q) return true;
-      return [c.segurado,c.placa,c.numsin,c.numapo,c.cia].join(" ").toLowerCase().indexOf(q)>=0;
-    });
-    listWrap.innerHTML="";
-    listWrap.appendChild(rows.length?claimsTable(rows):emptyState("Nenhum sinistro encontrado com esses filtros."));
-  }
+  function renderList(){var q=listFilter.q.toLowerCase();var rows=State.claims.filter(function(c){if(listFilter.status!=="todos"&&mapSituacao(c.situacao).label!==listFilter.status)return false;if(!q)return true;return[c.segurado,c.placa,c.numsin,c.numapo,c.cia].join(" ").toLowerCase().indexOf(q)>=0;});listWrap.innerHTML="";listWrap.appendChild(rows.length?claimsTable(rows):emptyState("Nenhum sinistro encontrado."));}
   setTimeout(renderList,0);
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[
-      U.el("div",{},[U.el("h1",{text:"Sinistros"}),U.el("p",{text:"Todos os sinistros trazidos da API CORP ("+State.claims.length+" registros)"})]),
-      U.el("button",{class:"btn",text:"↻ Sincronizar",onclick:function(){navigate("integracao");}})
-    ]),
-    U.el("div",{class:"card"},[chipRow,toolbar,listWrap])
-  ]),"Sinistros");
+  var toolbar=U.el("div",{class:"toolbar"},[U.el("input",{placeholder:"Buscar por segurado, placa, nº sinistro...",value:listFilter.q,oninput:function(e){listFilter.q=e.target.value;renderList();}}),U.el("button",{class:"btn sec sm",text:"Exportar CSV",onclick:exportCSV}),U.el("button",{class:"btn ghost sm",text:"↻ Sincronizar",onclick:function(){navigate("integracao");}})]);
+  return shell(U.el("div",{},[U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Sinistros"}),U.el("p",{text:"Todos os sinistros da API CORP ("+State.claims.length+" registros)"})]),U.el("button",{class:"btn",text:"↻ Sincronizar",onclick:function(){navigate("integracao");}})]),U.el("div",{class:"card"},[chipRow,toolbar,listWrap])]),"Sinistros");
 };
 function claimsTable(rows){
   var head=U.el("tr",{},["Nº Sinistro","Segurado","Placa","Seguradora","Ramo","Situação","Ocorrência","Indenização","Ações"].map(function(h){return U.el("th",{text:h});}));
-  var body=rows.map(function(c){
-    var sit=mapSituacao(c.situacao);
-    return U.el("tr",{},[
-      U.el("td",{class:"mono"},[U.el("a",{text:c.numsin||("#"+c.nosnum),onclick:function(){navigate("sinistro",c.id);}})]),
-      U.el("td",{text:U.txt(c.segurado)}),
-      U.el("td",{class:"mono",text:U.txt(c.placa)}),
-      U.el("td",{text:U.txt(c.cia)}),
-      U.el("td",{text:U.txt(c.ramo)}),
-      U.el("td",{},[U.el("span",{class:"badge "+sit.cls,text:sit.label})]),
-      U.el("td",{text:U.fmtDateBR(c.datoco)}),
-      U.el("td",{class:"mono right",text:c.valind?U.money(c.valind):"—"}),
-      U.el("td",{},[U.el("button",{class:"btn sec sm",text:"Abrir",onclick:function(){navigate("sinistro",c.id);}})])
-    ]);
-  });
+  var body=rows.map(function(c){var sit=mapSituacao(c.situacao);return U.el("tr",{},[U.el("td",{class:"mono"},[U.el("a",{text:c.numsin||("#"+c.nosnum),onclick:function(){navigate("sinistro",c.id);}})]),U.el("td",{text:U.txt(c.segurado)}),U.el("td",{class:"mono",text:U.txt(c.placa)}),U.el("td",{text:U.txt(c.cia)}),U.el("td",{text:U.txt(c.ramo)}),U.el("td",{},[U.el("span",{class:"badge "+sit.cls,text:sit.label})]),U.el("td",{text:U.fmtDateBR(c.datoco)}),U.el("td",{class:"mono right",text:c.valind?U.money(c.valind):"—"}),U.el("td",{},[U.el("button",{class:"btn sec sm",text:"Abrir",onclick:function(){navigate("sinistro",c.id);}})])]);});
   return U.el("div",{style:"overflow:auto"},[U.el("table",{},[U.el("thead",{},[head]),U.el("tbody",{},body)])]);
 }
 
-/* ----- Detalhe do sinistro (com Jornada) ----- */
+/* ---------- DETALHE ---------- */
 var detailTab="jornada";
 Pages.sinistro=function(){
   var c=State.claims.find(function(x){return x.id===State.param;});
-  if(!c) return shell(U.el("div",{},[emptyState("Sinistro não encontrado."),U.el("button",{class:"btn sec",text:"← Voltar",onclick:function(){navigate("sinistros");}})]),"Sinistros");
+  if(!c)return shell(U.el("div",{},[emptyState("Sinistro não encontrado.")]),"Sinistros");
   var sit=mapSituacao(c.situacao);
   var head=U.el("div",{class:"detail-head"},[
     U.el("button",{class:"btn sec sm",text:"← Voltar aos sinistros",onclick:function(){navigate("sinistros");},style:"margin-bottom:12px"}),
     U.el("h1",{text:(c.numsin?("Sinistro "+c.numsin):("Registro #"+c.nosnum))+" — "+U.txt(c.segurado)}),
     U.el("div",{class:"sub",text:"Placa "+U.txt(c.placa)+" • "+U.txt(c.cia)+" • Ramo "+U.txt(c.ramo)+" • Filial "+U.txt(c.codfil)}),
-    U.el("div",{class:"detail-badges"},[
-      U.el("span",{class:"badge "+sit.cls,text:sit.label}),
-      U.el("span",{class:"badge blue",text:U.txt(c.tipo)}),
-      c.responsavel?U.el("span",{class:"badge purple",text:"Resp.: "+c.responsavel}):null
-    ])
+    U.el("div",{class:"detail-badges"},[U.el("span",{class:"badge "+sit.cls,text:sit.label}),U.el("span",{class:"badge blue",text:U.txt(c.tipo)}),c.responsavel?U.el("span",{class:"badge purple",text:"Resp.: "+c.responsavel}):null])
   ]);
   var tabs=[["jornada","Jornada do cliente"],["geral","Visão geral"],["financeiro","Financeiro"],["atendimento","Atendimento"],["raw","Dados brutos (API)"]];
-  var tabRow=U.el("div",{class:"tabs"},tabs.map(function(t){
-    return U.el("div",{class:"tab"+(detailTab===t[0]?" active":""),text:t[1],onclick:function(){detailTab=t[0];render();}});
-  }));
+  var tabRow=U.el("div",{class:"tabs"},tabs.map(function(t){return U.el("div",{class:"tab"+(detailTab===t[0]?" active":""),text:t[1],onclick:function(){detailTab=t[0];render();}});}));
   var panel=U.el("div",{id:"panel"});
-  setTimeout(function(){ panel.innerHTML=""; panel.appendChild(detailPanel(c)); },0);
+  setTimeout(function(){panel.innerHTML="";panel.appendChild(detailPanel(c));},0);
   return shell(U.el("div",{},[head,tabRow,panel]),"Sinistros / Detalhe");
 };
+function kvCard(title,pairs){var dl=U.el("dl",{class:"kv"});pairs.forEach(function(p){dl.appendChild(U.el("dt",{text:p[0]}));dl.appendChild(U.el("dd",{text:p[1]}));});return U.el("div",{class:"card"},[U.el("h3",{text:title,style:"margin-top:0"}),dl]);}
 function detailPanel(c){
-  if(detailTab==="jornada") return journeyPanel(c);
-  if(detailTab==="geral") return kvCard("Informações gerais",[
-    ["Nº do sinistro",U.txt(c.numsin)],["Tipo",U.txt(c.tipo)],["Segurado",U.txt(c.segurado)],
-    ["Placa",U.txt(c.placa)],["Seguradora",U.txt(c.cia)],["Ramo",U.txt(c.ramo)],
-    ["Apólice",U.val(c.numapo)],["Endosso",U.val(c.numend)],["Item",U.txt(c.item)],
-    ["Filial",U.txt(c.codfil)],["Código interno",U.txt(c.codigo)],["Nº controle (nosnum)",U.txt(c.nosnum)],
-    ["Situação",mapSituacao(c.situacao).label]
-  ]);
-  if(detailTab==="financeiro") return kvCard("Valores",[
-    ["Valor avaliado",U.money(c.valavi)],["Valor indenizado",U.money(c.valind)],
-    ["Valor descontado",U.money(c.valdes)],["Franquia",U.money(c.franquia)],
-    ["Data de liberação",U.fmtDateBR(c.datlib)]
-  ]);
-  if(detailTab==="atendimento") return U.el("div",{},[
-    kvCard("Atendimento",[
-      ["Responsável",U.txt(c.responsavel)],["Oficina/Prestador",U.txt(c.oficina)],
-      ["Tipo de atendimento",U.txt(c.tipo_atendimento)],
-      ["Próxima agenda",U.fmtDateBR(c.proxima_agenda)],["Agendamento",U.fmtDateBR(c.agendamento)],
-      ["Data vistoria",U.fmtDateBR(c.datvis)]
-    ]),
-    U.el("div",{class:"card"},[
-      U.el("h3",{text:"Descrição",style:"margin-top:0"}),
-      U.el("p",{class:"muted",text:U.txt(c.descricao)})
-    ]),
-    U.el("div",{class:"card"},[
-      U.el("h3",{text:"Observações",style:"margin-top:0"}),
-      U.el("pre",{style:"white-space:pre-wrap;font-family:inherit;margin:0",text:U.txt(c.observacoes)})
-    ])
-  ]);
-  if(detailTab==="raw") return U.el("div",{class:"card"},[
-    U.el("h3",{text:"Resposta bruta da API",style:"margin-top:0"}),
-    U.el("pre",{style:"white-space:pre-wrap;font-size:12px;background:#0f172a;color:#a5f3fc;padding:14px;border-radius:8px;overflow:auto",text:JSON.stringify(c._raw,null,2)})
-  ]);
+  if(detailTab==="jornada")return journeyPanel(c);
+  if(detailTab==="geral")return kvCard("Informações gerais",[["Nº do sinistro",U.txt(c.numsin)],["Tipo",U.txt(c.tipo)],["Segurado",U.txt(c.segurado)],["Placa",U.txt(c.placa)],["Seguradora",U.txt(c.cia)],["Ramo",U.txt(c.ramo)],["Apólice",U.val(c.numapo)],["Endosso",U.val(c.numend)],["Item",U.txt(c.item)],["Filial",U.txt(c.codfil)],["Nº controle",U.txt(c.nosnum)],["Situação",mapSituacao(c.situacao).label]]);
+  if(detailTab==="financeiro")return kvCard("Valores",[["Valor avaliado",U.money(c.valavi)],["Valor indenizado",U.money(c.valind)],["Valor descontado",U.money(c.valdes)],["Franquia",U.money(c.franquia)],["Data de liberação",U.fmtDateBR(c.datlib)]]);
+  if(detailTab==="atendimento")return U.el("div",{},[kvCard("Atendimento",[["Responsável",U.txt(c.responsavel)],["Oficina/Prestador",U.txt(c.oficina)],["Tipo de atendimento",U.txt(c.tipo_atendimento)],["Próxima agenda",U.fmtDateBR(c.proxima_agenda)],["Agendamento",U.fmtDateBR(c.agendamento)],["Data vistoria",U.fmtDateBR(c.datvis)]]),U.el("div",{class:"card"},[U.el("h3",{text:"Descrição",style:"margin-top:0"}),U.el("p",{class:"muted",text:U.txt(c.descricao)})]),U.el("div",{class:"card"},[U.el("h3",{text:"Observações",style:"margin-top:0"}),U.el("pre",{style:"white-space:pre-wrap;font-family:inherit;margin:0",text:U.txt(c.observacoes)})])]);
+  if(detailTab==="raw")return U.el("div",{class:"card"},[U.el("h3",{text:"Resposta bruta da API",style:"margin-top:0"}),U.el("pre",{style:"white-space:pre-wrap;font-size:12px;background:#0f172a;color:#a5f3fc;padding:14px;border-radius:8px;overflow:auto",text:JSON.stringify(c._raw,null,2)})]);
 }
-function kvCard(title,pairs){
-  var dl=U.el("dl",{class:"kv"});
-  pairs.forEach(function(p){ dl.appendChild(U.el("dt",{text:p[0]})); dl.appendChild(U.el("dd",{text:p[1]})); });
-  return U.el("div",{class:"card"},[U.el("h3",{text:title,style:"margin-top:0"}),dl]);
-}
+
+/* ---------- JORNADA (editável, sobrevive à sincronização) ---------- */
 function journeyPanel(c){
-  var steps=buildJourney(c);
-  var journey=U.el("div",{class:"journey"},steps.map(function(s){
-    return U.el("div",{class:"jstep"},[
-      U.el("div",{class:"jdot "+s.state,text:s.state==="done"?"✓":(s.state==="current"?"●":"")}),
-      U.el("div",{class:"jbody"},[
-        U.el("h4",{text:s.title}),
-        U.el("div",{class:"jmeta",text:s.meta}),
-        U.el("div",{class:(s.date?"jdate":"jmeta"),text:s.date?("📅 "+U.fmtDateBR(s.date)):"Pendente"})
-      ])
-    ]);
-  }));
-  return U.el("div",{class:"card"},[
-    U.el("h3",{text:"Jornada do cliente",style:"margin-top:0"}),
-    U.el("p",{class:"muted",text:"Linha do tempo do sinistro montada a partir das datas retornadas pela API."}),
-    journey
-  ]);
-}
+  var isAdmin=getRole()==="admin";
+  var jr=getJourney(c.id);
+  var wrap=U.el("div",{});
 
-/* ----- Clientes / Seguradoras / Oficinas (derivados dos sinistros) ----- */
-Pages.clientes=function(){
-  var map={};
-  State.claims.forEach(function(c){ if(c.segurado){ (map[c.segurado]=map[c.segurado]||[]).push(c); } });
-  var names=Object.keys(map).sort();
-  var rows=names.map(function(n){
-    return U.el("tr",{},[U.el("td",{text:n}),U.el("td",{text:map[n].length+" sinistro(s)"}),
-      U.el("td",{text:map[n].map(function(c){return c.placa;}).filter(Boolean).join(", ")||"—"})]);
+  function rerender(){ var np=journeyPanel(c); wrap.replaceWith(np); }
+  function persist(){ saveJourney(c.id,jr); }
+
+  var stepsEl=U.el("div",{class:"journey"});
+  jr.steps.forEach(function(step,idx){
+    var done=(step.status||"").toLowerCase().indexOf("conclu")>=0;
+    var dotState=done?"done":(step.status?"current":"");
+    var bodyChildren=[];
+    // Cabeçalho da etapa
+    var titleEl;
+    if(isAdmin && !step.fixed){
+      titleEl=U.el("input",{class:"inline",value:step.title,style:"font-weight:700;min-width:220px",onchange:function(e){step.title=e.target.value;persist();}});
+    } else {
+      titleEl=U.el("h4",{text:step.title});
+    }
+    var headActions=[];
+    if(isAdmin && !step.fixed){
+      headActions.push(U.el("button",{class:"btn danger xs",text:"Excluir etapa",onclick:function(){jr.steps.splice(idx,1);persist();rerender();}}));
+    }
+    bodyChildren.push(U.el("div",{class:"jhead"},[titleEl,U.el("div",{style:"display:flex;gap:6px"},headActions)]));
+
+    if(step.type==="caminho"){
+      // Etapa "Definir caminho"
+      var sel=U.el("select",{class:"inline",onchange:function(e){applyCaminho(jr,e.target.value);persist();rerender();}},[
+        U.el("option",{value:"",text:"— Selecione —",selected:!jr.caminho?"selected":null}),
+        U.el("option",{value:"parcial",text:"Perda Parcial",selected:jr.caminho==="parcial"?"selected":null}),
+        U.el("option",{value:"integral",text:"Perda Integral",selected:jr.caminho==="integral"?"selected":null})
+      ]);
+      bodyChildren.push(U.el("div",{class:"jrow"},[U.el("div",{class:"field"},[U.el("label",{text:"Caminho do sinistro"}),sel])]));
+      if(jr.caminho) bodyChildren.push(U.el("div",{class:"muted",style:"margin-top:6px;font-size:12px",text:jr.caminho==="parcial"?"Perda Parcial: reparos autorizados, peças, reparo e conclusão.":"Perda Integral: documentação, transferência, análise final e conclusão."}));
+    } else {
+      // Etapa comum com caixa de status
+      var statusSel=U.el("select",{class:"inline",style:"min-width:170px",onchange:function(e){step.status=e.target.value;persist();rerender();}},
+        [U.el("option",{value:"",text:"— Status —",selected:!step.status?"selected":null})].concat(step.statusOptions.map(function(op){return U.el("option",{value:op,text:op,selected:step.status===op?"selected":null});})));
+      var dateInput=U.el("input",{type:"date",class:"inline",value:step.date||"",onchange:function(e){step.date=e.target.value;persist();}});
+      bodyChildren.push(U.el("div",{class:"jrow"},[
+        U.el("div",{class:"field"},[U.el("label",{text:"Status"}),statusSel]),
+        U.el("div",{class:"field"},[U.el("label",{text:"Data"}),dateInput])
+      ]));
+      var noteInput=U.el("input",{value:step.note||"",placeholder:"Observação desta etapa...",onchange:function(e){step.note=e.target.value;persist();}});
+      bodyChildren.push(U.el("div",{class:"field",style:"margin-top:8px"},[U.el("label",{text:"Observação"}),noteInput]));
+      // Gerenciar opções de status (incluir / editar / excluir) — disponível a todos
+      bodyChildren.push(statusManager(step,persist,rerender));
+    }
+
+    stepsEl.appendChild(U.el("div",{class:"jstep"},[
+      U.el("div",{class:"jdot "+dotState,text:done?"✓":(step.status?"●":"")}),
+      U.el("div",{class:"jbody"+(done?" done":"")},bodyChildren)
+    ]));
   });
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Clientes"}),U.el("p",{text:names.length+" segurados identificados nos sinistros"})])]),
-    U.el("div",{class:"card"},[names.length?U.el("table",{},[U.el("thead",{},[U.el("tr",{},["Segurado","Sinistros","Placas"].map(function(h){return U.el("th",{text:h});}))]),U.el("tbody",{},rows)]):emptyState("Sincronize os sinistros para popular os clientes.")])
-  ]),"Clientes");
-};
-Pages.seguradoras=function(){ return aggPage("cia","Seguradoras"); };
-Pages.oficinas=function(){ return aggPage("oficina","Oficinas/Prestadores"); };
-function aggPage(field,title){
-  var map={};
-  State.claims.forEach(function(c){ var v=c[field]; if(v){ map[v]=(map[v]||0)+1; } });
-  var keys=Object.keys(map).sort();
-  var rows=keys.map(function(k){return U.el("tr",{},[U.el("td",{text:k}),U.el("td",{text:map[k]+" sinistro(s)"})]);});
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:title}),U.el("p",{text:keys.length+" registros derivados dos sinistros"})])]),
-    U.el("div",{class:"card"},[keys.length?U.el("table",{},[U.el("thead",{},[U.el("tr",{},[U.el("th",{text:title}),U.el("th",{text:"Qtd."})])]),U.el("tbody",{},rows)]):emptyState("Sem dados. Sincronize os sinistros.")])
-  ]),title);
+
+  var adminAdd=null;
+  if(isAdmin){
+    adminAdd=U.el("div",{style:"margin-top:12px"},[
+      U.el("button",{class:"btn sec sm",text:"+ Adicionar etapa",onclick:function(){jr.steps.push(baseStep({title:"Nova etapa",type:"status"}));jr.steps[jr.steps.length-1]._custom=true;persist();rerender();}})
+    ]);
+  }
+
+  wrap.appendChild(U.el("div",{class:"card"},[
+    U.el("div",{style:"display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"},[
+      U.el("h3",{text:"Jornada do cliente",style:"margin:0"}),
+      U.el("span",{class:"tag-manual",text:"Preenchimento manual — não é afetado pela sincronização"})
+    ]),
+    U.el("p",{class:"muted",style:"margin-top:6px",text:isAdmin?"Você é Administrador: pode criar, renomear e excluir etapas.":"Perfil usuário: etapas iniciais são fixas; você preenche status, datas e gerencia as etapas do caminho."}),
+    stepsEl, adminAdd
+  ]));
+  return wrap;
+}
+/* Gerenciador de opções de status de uma etapa (incluir/editar/excluir) */
+function statusManager(step,persist,rerender){
+  var box=U.el("div",{style:"margin-top:8px;border-top:1px dashed var(--line);padding-top:8px"});
+  box.appendChild(U.el("label",{text:"Opções de status desta etapa"}));
+  var list=U.el("div",{style:"display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"});
+  step.statusOptions.forEach(function(op,i){
+    list.appendChild(U.el("span",{class:"badge gray",style:"gap:6px"},[
+      U.el("span",{text:op}),
+      U.el("a",{text:"✎",title:"Editar",onclick:function(){var nv=prompt("Editar status:",op);if(nv){step.statusOptions[i]=nv.trim();if(step.status===op)step.status=nv.trim();persist();rerender();}}}),
+      U.el("a",{text:"✕",title:"Excluir",style:"color:#dc2626",onclick:function(){step.statusOptions.splice(i,1);if(step.status===op)step.status="";persist();rerender();}})
+    ]));
+  });
+  var addInput=U.el("input",{class:"inline",placeholder:"Novo status...",style:"min-width:160px"});
+  var addBtn=U.el("button",{class:"btn sec xs",text:"+ Incluir status",onclick:function(){var v=(addInput.value||"").trim();if(v){step.statusOptions.push(v);persist();rerender();}}});
+  box.appendChild(list);
+  box.appendChild(U.el("div",{style:"display:flex;gap:6px;align-items:center"},[addInput,addBtn]));
+  return box;
 }
 
-/* ----- Relatórios ----- */
-Pages.relatorios=function(){
-  var cs=State.claims;
-  var porSit={},porCia={};
-  cs.forEach(function(c){ var s=mapSituacao(c.situacao).label; porSit[s]=(porSit[s]||0)+1; if(c.cia)porCia[c.cia]=(porCia[c.cia]||0)+1; });
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Relatórios"}),U.el("p",{text:"Resumos gerados a partir dos dados da API"})])]),
-    U.el("div",{class:"grid c2"},[
-      U.el("div",{class:"card"},[U.el("h3",{text:"Por situação",style:"margin-top:0"}),miniTable(porSit)]),
-      U.el("div",{class:"card"},[U.el("h3",{text:"Por seguradora",style:"margin-top:0"}),miniTable(porCia)])
-    ])
-  ]),"Relatórios");
-};
-function miniTable(obj){
-  var keys=Object.keys(obj); if(!keys.length) return emptyState("Sem dados.");
-  return U.el("table",{},[U.el("tbody",{},keys.map(function(k){return U.el("tr",{},[U.el("td",{text:k}),U.el("td",{class:"right mono",text:String(obj[k])})]);}))]);
-}
+/* ---------- páginas agregadas ---------- */
+Pages.clientes=function(){var map={};State.claims.forEach(function(c){if(c.segurado)(map[c.segurado]=map[c.segurado]||[]).push(c);});var names=Object.keys(map).sort();return shell(U.el("div",{},[U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Clientes"}),U.el("p",{text:names.length+" segurados"})])]),U.el("div",{class:"card"},[names.length?U.el("table",{},[U.el("thead",{},[U.el("tr",{},["Segurado","Sinistros","Placas"].map(function(h){return U.el("th",{text:h});}))]),U.el("tbody",{},names.map(function(n){return U.el("tr",{},[U.el("td",{text:n}),U.el("td",{text:map[n].length+" sinistro(s)"}),U.el("td",{text:map[n].map(function(c){return c.placa;}).filter(Boolean).join(", ")||"—"})]);}))]):emptyState("Sincronize para ver clientes.")])]),"Clientes");};
+function aggPage(field,title){var map={};State.claims.forEach(function(c){var v=c[field];if(v)map[v]=(map[v]||0)+1;});var keys=Object.keys(map).sort();return shell(U.el("div",{},[U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:title}),U.el("p",{text:keys.length+" registros"})])]),U.el("div",{class:"card"},[keys.length?U.el("table",{},[U.el("thead",{},[U.el("tr",{},[U.el("th",{text:title}),U.el("th",{text:"Qtd."})])]),U.el("tbody",{},keys.map(function(k){return U.el("tr",{},[U.el("td",{text:k}),U.el("td",{text:map[k]+" sinistro(s)"})]);}))]):emptyState("Sem dados.")])]),title);}
+Pages.seguradoras=function(){return aggPage("cia","Seguradoras");};
+Pages.oficinas=function(){return aggPage("oficina","Oficinas/Prestadores");};
+Pages.relatorios=function(){var cs=State.claims,porSit={},porCia={};cs.forEach(function(c){var s=mapSituacao(c.situacao).label;porSit[s]=(porSit[s]||0)+1;if(c.cia)porCia[c.cia]=(porCia[c.cia]||0)+1;});function mini(o){var k=Object.keys(o);if(!k.length)return emptyState("Sem dados.");return U.el("table",{},[U.el("tbody",{},k.map(function(x){return U.el("tr",{},[U.el("td",{text:x}),U.el("td",{class:"right mono",text:String(o[x])})]);}))]);}return shell(U.el("div",{},[U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Relatórios"})])]),U.el("div",{class:"grid c2"},[U.el("div",{class:"card"},[U.el("h3",{text:"Por situação",style:"margin-top:0"}),mini(porSit)]),U.el("div",{class:"card"},[U.el("h3",{text:"Por seguradora",style:"margin-top:0"}),mini(porCia)])])]),"Relatórios");};
 
-/* ----- Integração CORP ----- */
+/* ---------- INTEGRAÇÃO ---------- */
 Pages.integracao=function(){
-  var cfg=getCfg();
-  var st=U.el("div",{id:"syncStatus"});
-  function f(label,key,type,ph){ return U.el("div",{class:"field"},[U.el("label",{text:label}),U.el("input",{id:"cfg_"+key,type:type||"text",value:cfg[key]||"",placeholder:ph||""})]); }
-  function collect(){ return {url:val("url"),email:val("email"),senha:val("senha"),aplicacao:val("aplicacao")||"0"}; }
-  function val(k){ var e=document.getElementById("cfg_"+k); return e?e.value.trim():""; }
-  function setStatus(cls,msg){ st.innerHTML=""; st.appendChild(U.el("div",{class:"status "+cls,html:msg})); }
+  var cfg=getCfg(),st=U.el("div",{id:"syncStatus"});
+  function f(label,key,type,ph){return U.el("div",{class:"field"},[U.el("label",{text:label}),U.el("input",{id:"cfg_"+key,type:type||"text",value:cfg[key]||"",placeholder:ph||""})]);}
+  function val(k){var e=document.getElementById("cfg_"+k);return e?e.value.trim():"";}
+  function collect(){return{url:val("url"),email:val("email"),senha:val("senha"),aplicacao:val("aplicacao")||"0"};}
+  function setStatus(cls,msg){st.innerHTML="";st.appendChild(U.el("div",{class:"status "+cls,html:msg}));}
   var card=U.el("div",{class:"card"},[
     U.el("h3",{text:"Conexão com a API CORP",style:"margin-top:0"}),
     U.el("div",{class:"grid c2"},[f("URL base da API","url","text","https://api.corpnuvem.com"),f("Aplicação","aplicacao","number","0")]),
     U.el("div",{class:"grid c2"},[f("E-mail / Login","email","text","usuario@empresa.com"),f("Senha","senha","password","••••••")]),
     U.el("div",{style:"display:flex;gap:10px;flex-wrap:wrap;margin-top:6px"},[
       U.el("button",{class:"btn sec",text:"Salvar",onclick:function(){setCfg(collect());setStatus("ok","Configuração salva.");}}),
-      U.el("button",{class:"btn ghost",text:"Testar conexão",onclick:function(){
-        setCfg(collect()); setStatus("info","Testando conexão... <span class='spin'></span>");
-        CorpAPI.testConnection().then(function(){setStatus("ok","✔ Conexão OK! Login autenticado com sucesso.");})
-          .catch(function(e){setStatus("err","�‑ Falha: "+e.message);});
-      }}),
-      U.el("button",{class:"btn",id:"btnSync",text:"↻ Sincronizar todos os sinistros",onclick:function(){
-        setCfg(collect());
-        var b=document.getElementById("btnSync"); b.disabled=true; b.innerHTML="Sincronizando... <span class='spin'></span>";
-        setStatus("info","Buscando sinistros na API CORP... <span class='spin'></span>");
-        syncAll().then(function(res){
-          setStatus("ok","✔ Concluído! "+res.total+" sinistros sincronizados ("+res.novos+" novos, "+res.atualizados+" atualizados).");
-          b.disabled=false; b.innerHTML="↻ Sincronizar todos os sinistros";
-        }).catch(function(e){
-          setStatus("err","✗ Erro na sincronização: "+e.message+(e.status?(" (HTTP "+e.status+")"):""));
-          b.disabled=false; b.innerHTML="↻ Sincronizar todos os sinistros";
-        });
-      }})
-    ]),
-    st
+      U.el("button",{class:"btn ghost",text:"Testar conexão",onclick:function(){setCfg(collect());setStatus("info","Testando... <span class='spin'></span>");CorpAPI.testConnection().then(function(){setStatus("ok","✔ Conexão OK!");}).catch(function(e){setStatus("err","✗ Falha: "+e.message);});}}),
+      U.el("button",{class:"btn",id:"btnSync",text:"↻ Sincronizar todos os sinistros",onclick:function(){setCfg(collect());var b=document.getElementById("btnSync");b.disabled=true;b.innerHTML="Sincronizando... <span class='spin'></span>";setStatus("info","Buscando sinistros... <span class='spin'></span>");syncAll().then(function(res){setStatus("ok","✔ Concluído! "+res.total+" sinistros ("+res.novos+" novos, "+res.atualizados+" atualizados). Suas edições manuais foram preservadas.");b.disabled=false;b.innerHTML="↻ Sincronizar todos os sinistros";}).catch(function(e){setStatus("err","✗ Erro: "+e.message+(e.status?(" (HTTP "+e.status+")"):""));b.disabled=false;b.innerHTML="↻ Sincronizar todos os sinistros";});}})
+    ]),st
   ]);
-  var info=U.el("div",{class:"card"},[
-    U.el("h3",{text:"Sobre a sincronização",style:"margin-top:0"}),
-    U.el("p",{class:"muted",text:"A sincronização busca todos os sinistros dos últimos 5 anos, percorrendo todas as páginas. Cada registro é mapeado com todos os campos que a API retorna: segurado, placa, seguradora, ramo, apólice, valores (avaliado, indenizado, franquia), datas (aviso, ocorrência, vistoria, liberação, encerramento), responsável, oficina, descrição e observações."}),
-    U.el("p",{class:"muted",text:"Total atual armazenado: "+State.claims.length+" sinistros."}),
-    State.claims.length?U.el("button",{class:"btn sec sm",text:"Limpar dados locais",onclick:function(){if(confirm("Apagar todos os sinistros armazenados localmente?")){State.claims=[];saveClaims([]);render();}}}):null
-  ]);
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Integração CORP"}),U.el("p",{text:"Conecte-se à API e sincronize todos os sinistros"})])]),
-    card, info
-  ]),"Integração CORP");
+  var info=U.el("div",{class:"card"},[U.el("h3",{text:"Sobre a sincronização",style:"margin-top:0"}),U.el("p",{class:"muted",text:"A sincronização atualiza somente os dados vindos da API. Tudo que você preenche manualmente (jornada, status, etapas) fica em armazenamento separado e é preservado a cada nova sincronização."}),U.el("p",{class:"muted",text:"Total armazenado: "+State.claims.length+" sinistros."}),State.claims.length?U.el("button",{class:"btn sec sm",text:"Limpar sinistros (mantém edições manuais)",onclick:function(){if(confirm("Apagar os sinistros da API? Suas edições manuais NÃO serão apagadas.")){State.claims=[];saveClaims([]);render();}}}):null]);
+  return shell(U.el("div",{},[U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Integração CORP"}),U.el("p",{text:"Conecte-se à API e sincronize os sinistros"})])]),card,info]),"Integração CORP");
 };
+Pages.config=function(){return shell(U.el("div",{},[U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Configurações"})])]),U.el("div",{class:"card"},[U.el("h3",{text:"Dados",style:"margin-top:0"}),U.el("p",{class:"muted",text:"Sinistros: "+State.claims.length+" • Edições manuais salvas: "+Object.keys(loadOvr()).length+" • Token: "+(getToken()?"ativo":"inativo")}),U.el("button",{class:"btn danger sm",text:"Sair (logout)",onclick:function(){setToken("");alert("Sessão encerrada.");render();}})])]),"Configurações");};
 
-/* ----- Configurações ----- */
-Pages.config=function(){
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Configurações"}),U.el("p",{text:"Preferências do sistema"})])]),
-    U.el("div",{class:"card"},[
-      U.el("h3",{text:"Dados armazenados",style:"margin-top:0"}),
-      U.el("p",{class:"muted",text:"Sinistros: "+State.claims.length+" • Token: "+(getToken()?"ativo":"inativo")}),
-      U.el("button",{class:"btn danger sm",text:"Sair (logout)",onclick:function(){setToken("");alert("Sessão encerrada.");render();}})
-    ]),
-    U.el("div",{class:"card"},[U.el("h3",{text:"Ir para integração",style:"margin-top:0"}),
-      U.el("button",{class:"btn",text:"Abrir Integração CORP",onclick:function(){navigate("integracao");}})]
-    )
-  ]),"Configurações");
-};
-
-/* =========================================================================
-   SINCRONIZAÇÃO (percorre todas as páginas)
-   ========================================================================= */
+/* ---------- SINCRONIZAÇÃO (preserva overrides) ---------- */
 function syncAll(){
-  var novos=0,atualizados=0,total=0;
-  var byId={}; State.claims.forEach(function(c){byId[c.id]=c;});
-  function pagina(p){
-    return CorpAPI.fetchSinistros({pagina:p}).then(function(resp){
-      var arr=Array.isArray(resp)?resp:((resp&&(resp.sinistros||resp.sinistro||resp.dados||resp.data||resp.itens||resp.registros))||[]);
-      arr.forEach(function(raw){
-        var m=mapCorp(raw);
-        if(byId[m.id]){ atualizados++; } else { novos++; }
-        byId[m.id]=m;
-      });
-      total+=arr.length;
-      if(arr.length>=100 && p<100){ return pagina(p+1); }
-      // finaliza
-      State.claims=Object.keys(byId).map(function(k){return byId[k];});
-      saveClaims(State.claims);
-      return {total:State.claims.length,novos:novos,atualizados:atualizados};
-    });
-  }
+  var novos=0,atualizados=0;var byId={};State.claims.forEach(function(c){byId[c.id]=c;});
+  function pagina(p){return CorpAPI.fetchSinistros({pagina:p}).then(function(resp){var arr=Array.isArray(resp)?resp:((resp&&(resp.sinistros||resp.sinistro||resp.dados||resp.data||resp.itens||resp.registros))||[]);arr.forEach(function(raw){var m=mapCorp(raw);if(byId[m.id])atualizados++;else novos++;byId[m.id]=m;});if(arr.length>=100&&p<100)return pagina(p+1);State.claims=Object.keys(byId).map(function(k){return byId[k];});saveClaims(State.claims);return{total:State.claims.length,novos:novos,atualizados:atualizados};});}
   return pagina(1);
 }
+function exportCSV(){var cols=["numsin","segurado","placa","cia","ramo","situacao","numapo","datoco","datavi","datenc","valavi","valind","franquia","responsavel","oficina"];var head=cols.join(";");var lines=State.claims.map(function(c){return cols.map(function(k){var v=c[k];if(/^dat/.test(k))v=U.fmtDateBR(v);return '"'+String(v==null?"":v).replace(/"/g,'""')+'"';}).join(";");});var blob=new Blob(["\ufeff"+head+"\n"+lines.join("\n")],{type:"text/csv;charset=utf-8;"});var a=U.el("a",{href:URL.createObjectURL(blob),download:"sinistros_corp.csv"});document.body.appendChild(a);a.click();a.remove();}
 
-/* ----- Exportar CSV ----- */
-function exportCSV(){
-  var cols=["numsin","segurado","placa","cia","ramo","situacao","numapo","datoco","datavi","datenc","valavi","valind","franquia","responsavel","oficina"];
-  var head=cols.join(";");
-  var lines=State.claims.map(function(c){return cols.map(function(k){var v=c[k];if(/^dat|^data/.test(k))v=U.fmtDateBR(v);return '"'+String(v==null?"":v).replace(/"/g,'""')+'"';}).join(";");});
-  var csv=head+"\n"+lines.join("\n");
-  var blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
-  var a=U.el("a",{href:URL.createObjectURL(blob),download:"sinistros_corp.csv"}); document.body.appendChild(a); a.click(); a.remove();
-}
-
-/* =========================================================================
-   RENDER
-   ========================================================================= */
-function render(){
-  var root=document.getElementById("root");
-  root.innerHTML="";
-  var page=Pages[State.route]||Pages.dashboard;
-  root.appendChild(page());
-}
-/* inicialização a partir do hash */
-(function(){
-  var h=location.hash.replace(/^#\//,"").split("/");
-  if(h[0]){ State.route=h[0]; State.param=h[1]||null; }
-  render();
-})();
+function render(){var root=document.getElementById("root");root.innerHTML="";(Pages[State.route]||Pages.dashboard)().childNodes;root.appendChild((Pages[State.route]||Pages.dashboard)());}
+(function(){var h=location.hash.replace(/^#\//,"").split("/");if(h[0]){State.route=h[0];State.param=h[1]||null;}render();})();
 </script>
 </body>
 </html>

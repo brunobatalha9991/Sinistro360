@@ -284,12 +284,30 @@ var CorpAPI = (function(){
   // Busca a lista de sinistros/assistências no CORP
   function fetchSinistros(params){
     params = params || {};
-    var qs = Object.keys(params).map(function(k){
-      return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]);
+    // Parâmetros que os endpoints do CORP costumam exigir (evita erro 500).
+    // Formato de data dd/mm/aaaa, conforme a documentação (/producao).
+    var hoje = new Date();
+    var umAnoAtras = new Date(); umAnoAtras.setFullYear(hoje.getFullYear() - 1);
+    function br(d){ var dd=("0"+d.getDate()).slice(-2), mm=("0"+(d.getMonth()+1)).slice(-2); return dd+"/"+mm+"/"+d.getFullYear(); }
+    var defaults = {
+      texto: "",
+      dt_ini: br(umAnoAtras),
+      dt_fim: br(hoje),
+      ordem: "datpro",
+      orientacao: "desc",
+      pagina: 1,
+      limite: 100
+    };
+    var merged = {};
+    for(var k in defaults) merged[k] = defaults[k];
+    for(var k2 in params) merged[k2] = params[k2];
+    var qs = Object.keys(merged).map(function(k){
+      return encodeURIComponent(k) + "=" + encodeURIComponent(merged[k]);
     }).join("&");
-    var path = "/sinistros" + (qs ? ("?" + qs) : "");
+    var path = "/sinistros?" + qs;
     return withAuth(function(){ return request(path, { method: "GET" }); });
   }
+
 
   // Atualiza um sinistro no CORP
   function updateSinistro(payload){

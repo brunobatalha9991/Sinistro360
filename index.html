@@ -334,22 +334,6 @@ var CorpAPI = (function(){
 /* ===== Sincronização CORP -> Sistema local ===== */
 var CorpSync = (function(){
 
-  // Busca o primeiro campo existente entre vários nomes possíveis (igual ao seu sistema de teste)
-  function campo(obj, nomes, padrao){
-    if(padrao === undefined) padrao = "";
-    for(var i=0;i<nomes.length;i++){
-      var alvo = nomes[i].toLowerCase();
-      for(var k in obj){
-        if(k.toLowerCase() === alvo){
-          var v = obj[k];
-          if(v !== null && v !== undefined && v !== "") return v;
-        }
-      }
-    }
-    return padrao;
-  }
-
-  // Converte data "dd/mm/aaaa" (ou ISO) para o formato interno "aaaa-mm-dd"
   function paraISO(v){
     if(!v) return "";
     v = String(v).trim();
@@ -360,60 +344,66 @@ var CorpSync = (function(){
     return "";
   }
 
-  var SIT_TXT = { P:"PENDENTE", A:"EM ANDAMENTO", I:"INDENIZADO", E:"ENCERRADO SEM IND.", T:"—",
-    0:"PENDENTE", 1:"EM ANDAMENTO", 2:"INDENIZADO", 3:"ENCERRADO SEM IND." };
+  // Mapeia a SITUACAO textual do CORP para a etapa/generalStatus do sistema
+  function mapStatus(sit){
+    var s = String(sit||"").toUpperCase().trim();
+    if(s.indexOf("INDENIZ") >= 0) return "Indenizado";
+    if(s.indexOf("ENCERR") >= 0)  return "Encerrado";
+    if(s.indexOf("ANDAMENTO") >= 0) return "Em andamento";
+    if(s.indexOf("PENDENTE") >= 0)  return "Pendente";
+    if(s.indexOf("NEGAD") >= 0 || s.indexOf("RECUS") >= 0) return "Negado";
+    return sit || "Aberto";
+  }
 
-  // Converte um registro do CORP para um sinistro no formato do Sinistro360.
   function mapCorpToLocal(c){
-    var numero   = campo(c, ["numsin","num_sinistro","numero_sinistro","sinistro","codigo","nosnum"], "");
-    var segurado = campo(c, ["cliente","segurado","nome","nome_cliente","nome_segurado"], "");
-    var placa    = campo(c, ["placa"], "");
-    var veiculo  = campo(c, ["descricao_item","item_descricao","veiculo","item","item_sinistrado"], "—");
-    var seguradora = campo(c, ["seguradora","cia","companhia"], "");
-    var sitCod   = campo(c, ["situacao","sit_sinistro","status"], "");
-    var sitTxt   = campo(c, ["situacao_txt","sit_sinistro_txt","situacao_descricao"], "") || SIT_TXT[sitCod] || String(sitCod||"Aberto");
-    var dtOco    = paraISO(campo(c, ["datoco","data_ocorrencia","datocorrencia","dtocorrencia"], ""));
-    var dtAviso  = paraISO(campo(c, ["datavi","data_aviso","dtaviso"], ""));
-    var apolice  = campo(c, ["numapo","apolice","num_apolice"], "");
-    var oficina  = campo(c, ["oficina","nome_oficina"], "");
-    var obs      = campo(c, ["observacoes","obs","observacao"], "");
+    var numsin   = c.numsin || "";
+    var idUnico  = (c.codfil != null && c.nosnum != null) ? (c.codfil + "-" + c.nosnum) : (numsin || null);
+    var segurado = c.segurado || "";
+    var placa    = c.placa || "";
+    var seguradora = c.cia || "";
+    var situacao = c.situacao || "";
+    var oficina  = c.oficina ? String(c.oficina).trim() : "";
+    var obs      = c.observacoes || "";
 
     var wf = WF.createWorkflowInstance("Ainda não definido");
     return {
-      corpId: (numero || campo(c,["id","codigo"],"")) || null,
+      corpId: idUnico,
       linkedFromApi: true,
-      protocol: numero ? ("CORP-"+numero) : ("CORP-"+U.uid("s")),
-      insurerClaimNo: numero,
+      protocol: numsin ? ("CORP-"+numsin) : ("CORP-"+U.uid("s")),
+      insurerClaimNo: numsin,
       clientId: null,
       partyType: "Segurado",
-      thirdPartyOwner: segurado,       // guarda o nome mesmo sem cliente cadastrado
+      insuredName: segurado,           // nome do segurado (usado pela claimPartyName ajustada)
+      thirdPartyOwner: segurado,
       condutor: segurado,
-      vehicle: veiculo,
+      vehicle: "—",
       plate: placa,
       insurerId: "",
       insurerName: seguradora,
-      generalStatus: sitTxt,
+      generalStatus: mapStatus(situacao),
       corpType: "sinistro",
-      occurrenceDate: dtOco,
-      occurrenceTime: campo(c, ["hroco","hora_ocorrencia","hrocorrencia"], ""),
-      insurerOpenDate: dtAviso,
-      communicationDate: dtAviso || U.todayISO(),
+      ramo: c.ramo || "",
+      occurrenceDate: paraISO(c.datoco),
+      insurerOpenDate: paraISO(c.datavi),
+      closeDate: paraISO(c.datenc),
+      communicationDate: paraISO(c.datavi) || U.todayISO(),
       channel: "API CORP",
-      city: campo(c, ["cidade","municipio"], ""), state: campo(c, ["uf","estado"], "SP"),
+      city: "", state: "SP",
       occurrenceDesc: obs || "Processo importado automaticamente do CORP via API.",
       hasVictims:false, hasThirdParties:false, driveable:true, needsAssistance:false,
-      internalOwner: (S.state.session ? S.state.session.name : "—"),
+      internalOwner: (c.responsavel || (S.state.session ? S.state.session.name : "—")),
       workflow: wf,
-      documents:[], inspection:{type:"Presencial",requestDate:null,scheduleDate:null,plannedDate:null,doneDate:null,situation:"Não solicitada",location:"",report:"",result:""},
+      documents:[], inspection:{type:"Presencial",requestDate:null,scheduleDate:paraISO(c.datvis)||null,plannedDate:null,doneDate:paraISO(c.datvis)||null,situation:"Não solicitada",location:"",report:"",result:""},
       analysis:{analyst:"",vehicleValue:0,repairValue:0,damagePct:0,opinion:"",situation:"Aguardando análise"},branchDecision:null,
-      repair:{workshop:oficina,workshopType:"",budget:0,approved:0,franchise:0,parts:[],progressPct:0,deliveryDate:null},
-      indemnity:{expected:0,approved:0,beneficiary:"",bankMasked:"",paymentDate:null,pendencies:""},
+      repair:{workshop:oficina,workshopType:"",budget:0,approved:0,franchise:(c.franquia||0),parts:[],progressPct:0,deliveryDate:null},
+      indemnity:{expected:0,approved:(c.valind||0),beneficiary:segurado,bankMasked:"",paymentDate:paraISO(c.datlib)||null,pendencies:""},
       rentalCar:{covered:false,contractedDays:0,usedDays:0,rental:"",status:"Não aplicável"},
       thirdParties:[],tasks:[],communications:[],blockers:[],
       observations:obs,repairChoice:"",linkedClaimId:null,linkedRole:null,
       workshop:{choice:"",name:oficina,doc:"",contact:"",address:"",email:""},
-      apolice: apolice,
-      timeline:[{id:U.uid("tl"),at:U.nowISO(),type:"Integração",text:"Processo importado do CORP via API."}],
+      apolice: (c.numapo && c.numapo!=="0") ? c.numapo : "",
+      franquia: c.franquia || 0,
+      timeline:[{id:U.uid("tl"),at:U.nowISO(),type:"Integração",text:"Processo importado do CORP via API. Situação CORP: "+situacao}],
       audit:[{id:U.uid("au"),at:U.nowISO(),userId:(S.state.session?S.state.session.id:"api"),type:"Integração CORP",field:"—",oldValue:"—",newValue:"Importado do CORP",reason:"Sincronização via API"}],
       lastUpdate:U.todayISO(),
       _raw:c
@@ -429,13 +419,14 @@ var CorpSync = (function(){
         protocol: mapped.protocol,
         insurerClaimNo: mapped.insurerClaimNo,
         generalStatus: mapped.generalStatus,
+        insuredName: mapped.insuredName,
         thirdPartyOwner: mapped.thirdPartyOwner,
         condutor: mapped.condutor,
         plate: mapped.plate,
-        vehicle: mapped.vehicle,
         insurerName: mapped.insurerName,
         occurrenceDate: mapped.occurrenceDate,
         insurerOpenDate: mapped.insurerOpenDate,
+        closeDate: mapped.closeDate,
         observations: mapped.observations,
         _raw: mapped._raw,
         lastUpdate: U.todayISO()
@@ -447,7 +438,6 @@ var CorpSync = (function(){
     }
   }
 
-  // Sincroniza percorrendo todas as páginas até acabar
   function sync(params){
     params = params || {};
     var created = 0, updated = 0, total = 0;
@@ -462,7 +452,6 @@ var CorpSync = (function(){
           if(r === "created") created++; else updated++;
         });
         total += arr.length;
-        // Se veio página cheia (100), tenta a próxima; senão, encerra.
         if(arr.length >= 100 && pagina < 50){ return proximaPagina(pagina+1); }
         return { total: total, created: created, updated: updated };
       });
@@ -470,8 +459,9 @@ var CorpSync = (function(){
     return proximaPagina(1);
   }
 
-  return { sync: sync, mapCorpToLocal: mapCorpToLocal, campo: campo };
+  return { sync: sync, mapCorpToLocal: mapCorpToLocal };
 })();
+
 
 
 
@@ -656,7 +646,20 @@ function addAudit(claim,type,field,oldV,newV,reason){claim.audit.unshift({id:U.u
   userId:S.state.session?S.state.session.id:"?",type,field:field||"—",oldValue:oldV??"—",newValue:newV??"—",reason:reason||""});}
 function addTimeline(claim,type,text){claim.timeline.unshift({id:U.uid("tl"),at:U.nowISO(),type,text});claim.lastUpdate=U.todayISO();}
 function clientName(id){const c=U.byId(db().clients,id);return c?c.name:"—";}
-function claimPartyName(c){if(c.partyType==="Terceiro")return c.thirdPartyOwner||"Terceiro";return clientName(c.clientId);}
+function claimPartyName(c){
+  if(!c) return "—";
+  // Registros importados do CORP: mostra o nome do segurado que veio da API
+  if(c.linkedFromApi && (c.insuredName || c.thirdPartyOwner)){
+    return c.insuredName || c.thirdPartyOwner;
+  }
+  if(c.partyType === "Terceiro"){
+    return c.thirdPartyOwner || "—";
+  }
+  // Segurado com cliente cadastrado
+  var cli = c.clientId ? R.ClientRepository.byId(c.clientId) : null;
+  return cli ? cli.name : (c.insuredName || c.thirdPartyOwner || "—");
+}
+
 function insurerName(id){const c=U.byId(db().insurers,id);return c?c.name:"—";}
 function policyLabel(p){return p?(p.number||p.proposalNumber||"—"):"—";}
 function stageLabel(name){const map={"Comunicação":"Solic. Atendimento","Coleta de documentos":"Coleta de Docs/Info"};return map[name]||name;}

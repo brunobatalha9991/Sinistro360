@@ -2,623 +2,801 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sinistro360 — Integração CORP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consulta de Sinistros — CorpNuvem</title>
 <style>
-:root{
-  --bg:#f5f7fb; --card:#fff; --ink:#1e293b; --muted:#64748b; --line:#e2e8f0;
-  --brand:#2563eb; --brand-dark:#1e293b; --ok:#16a34a; --warn:#f59e0b; --danger:#dc2626;
-  --chip:#eff6ff; --chip-ink:#2563eb; --sidebar:#0f172a; --sidebar-ink:#cbd5e1;
-}
-*{box-sizing:border-box}
-body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
-a{color:var(--brand);text-decoration:none}
-.hidden{display:none!important}
-/* Layout */
-.app{display:flex;min-height:100vh}
-.sidebar{width:230px;background:var(--sidebar);color:var(--sidebar-ink);flex-shrink:0;display:flex;flex-direction:column;padding:0}
-.sidebar .brand{padding:18px 20px;font-size:18px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;border-bottom:1px solid #1e293b}
-.sidebar nav{padding:10px 0;flex:1}
-.sidebar nav a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:var(--sidebar-ink);font-size:14px;cursor:pointer}
-.sidebar nav a:hover{background:#1e293b;color:#fff}
-.sidebar nav a.active{background:var(--brand);color:#fff}
-.sidebar .ver{padding:12px 20px;font-size:11px;color:#475569}
-.main{flex:1;display:flex;flex-direction:column;min-width:0}
-.topbar{background:#fff;border-bottom:1px solid var(--line);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
-.topbar .crumb{color:var(--muted);font-size:13px}
-.topbar .user{display:flex;align-items:center;gap:10px;font-size:13px}
-.avatar{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600}
-.content{padding:24px;overflow:auto}
-/* Componentes */
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px}
-.page-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
-.page-head h1{margin:0;font-size:22px}
-.page-head p{margin:4px 0 0;color:var(--muted);font-size:13px}
-.btn{background:var(--brand);color:#fff;border:none;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
-.btn:hover{opacity:.92}
-.btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
-.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand)}
-.btn.sm{padding:5px 12px;font-size:12px}
-.btn.danger{background:var(--danger)}
-input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;background:#fff}
-label{display:block;font-size:12px;color:var(--muted);margin:0 0 5px;font-weight:600}
-.field{margin-bottom:14px}
-.grid{display:grid;gap:14px}
-.grid.c2{grid-template-columns:1fr 1fr}
-.grid.c3{grid-template-columns:1fr 1fr 1fr}
-.grid.c4{grid-template-columns:repeat(4,1fr)}
-@media(max-width:900px){.grid.c2,.grid.c3,.grid.c4{grid-template-columns:1fr}}
-/* Chips / filtros */
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
-.chip-btn{background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;color:var(--muted)}
-.chip-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
-.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
-.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
-.badge.blue{background:#eff6ff;color:#2563eb}.badge.green{background:#dcfce7;color:#16a34a}
-.badge.amber{background:#fef3c7;color:#b45309}.badge.red{background:#fee2e2;color:#dc2626}
-.badge.gray{background:#f1f5f9;color:#64748b}.badge.purple{background:#f3e8ff;color:#9333ea}
-/* Tabela */
-.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
-.toolbar input,.toolbar select{width:auto;min-width:150px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;padding:10px 12px;color:var(--muted);font-weight:600;border-bottom:2px solid var(--line);white-space:nowrap}
-td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
-tr:hover td{background:#f8fafc}
-.mono{font-variant-numeric:tabular-nums}
-/* Detalhe */
-.detail-head{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
-.detail-head h1{margin:0 0 6px;font-size:20px}
-.detail-head .sub{color:var(--muted);font-size:13px}
-.detail-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
-.tabs .tab{padding:10px 16px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;border-bottom:2px solid transparent}
-.tabs .tab.active{color:var(--brand);border-bottom-color:var(--brand)}
-.kv{display:grid;grid-template-columns:200px 1fr;gap:2px 16px}
-.kv dt{color:var(--muted);padding:8px 0;font-size:12px;border-bottom:1px solid #f1f5f9}
-.kv dd{margin:0;padding:8px 0;font-size:13px;border-bottom:1px solid #f1f5f9;word-break:break-word}
-/* Jornada / Timeline */
-.journey{position:relative;padding-left:8px}
-.jstep{display:flex;gap:14px;position:relative;padding-bottom:22px}
-.jstep::before{content:"";position:absolute;left:11px;top:26px;bottom:-4px;width:2px;background:var(--line)}
-.jstep:last-child::before{display:none}
-.jdot{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;background:var(--line);z-index:1}
-.jdot.done{background:var(--ok)}.jdot.current{background:var(--brand);box-shadow:0 0 0 4px #dbeafe}.jdot.pending{background:#cbd5e1}
-.jbody{flex:1;padding-top:1px}
-.jbody h4{margin:0 0 3px;font-size:14px}
-.jbody .jmeta{color:var(--muted);font-size:12px}
-.jbody .jdate{color:var(--ok);font-size:12px;font-weight:600}
-/* Login */
-.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a,#1e3a8a)}
-.login-box{background:#fff;border-radius:16px;padding:36px;width:380px;max-width:92vw}
-.login-box h1{margin:0 0 4px;font-size:22px}
-.login-box p{margin:0 0 22px;color:var(--muted);font-size:13px}
-.status{padding:10px 12px;border-radius:8px;font-size:13px;margin-top:12px}
-.status.ok{background:#dcfce7;color:#166534}.status.err{background:#fee2e2;color:#991b1b}.status.info{background:#eff6ff;color:#1e40af}
-.stat-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-@media(max-width:900px){.stat-cards{grid-template-columns:1fr 1fr}}
-.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
-.stat .n{font-size:26px;font-weight:700}.stat .l{color:var(--muted);font-size:12px;margin-top:2px}
-.muted{color:var(--muted)}
-.right{text-align:right}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
-@keyframes sp{to{transform:rotate(360deg)}}
+  :root{--azul:#1c5f9e;--azul-claro:#dce9f5;--borda:#8fa9c4;--painel:#e8eef4;
+        --cinza:#f0f0f0;--label:#3a6ea5;--manual:#c47f16;--manual-bg:#fff8e8}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",Tahoma,sans-serif;font-size:13px;background:#c9d6e3;color:#1a1a1a}
+  button{font-family:inherit;font-size:12px;cursor:pointer}
+  input,select,textarea{font-family:inherit}
+
+  #login{position:fixed;inset:0;background:#5f7a96;display:flex;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border:1px solid var(--borda);border-radius:4px;padding:26px 30px;width:340px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+  #login h1{margin:0 0 4px;font-size:18px;color:var(--azul)}
+  #login p.sub{margin:0 0 18px;font-size:11px;color:#666}
+  #login label{display:block;margin:10px 0 3px;font-size:11px;color:var(--label);font-weight:600}
+  #login input{width:100%;padding:6px 8px;border:1px solid var(--borda);border-radius:2px;font-size:13px}
+  #login button{width:100%;margin-top:18px;padding:9px;background:var(--azul);color:#fff;border:none;border-radius:2px;font-size:13px;font-weight:600}
+  .erro{color:#b00020;font-size:11px;margin-top:10px;min-height:14px;line-height:1.4}
+
+  #app{display:none;height:100vh;flex-direction:column}
+  .titlebar{background:linear-gradient(#fdfdfd,#eef2f6);border-bottom:1px solid var(--borda);padding:6px 12px;display:flex;align-items:center;gap:8px}
+  .titlebar .ico{width:16px;height:16px;background:var(--azul);border-radius:2px}
+  .titlebar .spacer{flex:1}
+  .titlebar .user{font-size:11px;color:#555}
+  .titlebar button{background:#fff;border:1px solid var(--borda);padding:3px 10px;border-radius:2px}
+
+  .filtros{background:var(--painel);border-bottom:1px solid var(--borda);padding:10px 12px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  .campo{display:flex;flex-direction:column;gap:3px}
+  .campo label{font-size:10px;color:var(--label);font-weight:600;text-transform:uppercase}
+  .campo input,.campo select{padding:4px 6px;border:1px solid var(--borda);border-radius:2px;font-size:12px;background:#fff;min-width:120px}
+  .btn-buscar{background:var(--azul);color:#fff;border:none;padding:6px 22px;border-radius:2px;font-weight:600}
+  .btn-limpar{background:#fff;border:1px solid var(--borda);padding:6px 14px;border-radius:2px}
+
+  .corpo{flex:1;display:flex;min-height:0}
+  .lista{width:40%;min-width:360px;border-right:1px solid var(--borda);background:#fff;display:flex;flex-direction:column}
+  .lista .head{padding:6px 10px;background:var(--cinza);border-bottom:1px solid var(--borda);font-size:11px}
+  .lista .rolagem{flex:1;overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{position:sticky;top:0;background:var(--cinza);border-bottom:1px solid var(--borda);padding:6px 8px;text-align:left;font-size:11px;white-space:nowrap}
+  td{padding:5px 8px;border-bottom:1px solid #eaeaea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:#f2f7fc}
+  tbody tr.sel{background:var(--azul);color:#fff}
+  .marca{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--manual);margin-left:5px}
+  .vazio{padding:40px 20px;text-align:center;color:#888}
+  .paginacao{padding:6px 10px;background:var(--cinza);border-top:1px solid var(--borda);display:flex;gap:6px;justify-content:center;align-items:center;font-size:11px}
+  .paginacao button{border:1px solid var(--borda);background:#fff;padding:3px 10px;border-radius:2px}
+  .paginacao button:disabled{opacity:.4;cursor:default}
+
+  .detalhe{flex:1;display:flex;flex-direction:column;background:var(--painel);min-width:0}
+  .det-head{background:#fff;border-bottom:1px solid var(--borda);padding:8px 14px;display:flex;justify-content:space-between;gap:12px}
+  .det-head .cli{font-style:italic;font-weight:700;color:var(--azul);font-size:14px}
+  .det-head .sit{font-size:17px;font-weight:700;color:#7a7a7a;text-transform:uppercase;text-align:right}
+  .abas{display:flex;gap:2px;padding:6px 12px 0;background:#fff;border-bottom:1px solid var(--borda);flex-wrap:wrap}
+  .aba{padding:6px 16px;border:1px solid var(--borda);border-bottom:none;border-radius:4px 4px 0 0;background:var(--cinza);font-size:12px;position:relative;top:1px;cursor:pointer}
+  .aba.on{background:#fff;font-weight:600;border-bottom:1px solid #fff}
+  .aba .badge{background:var(--azul);color:#fff;border-radius:8px;padding:0 5px;font-size:10px;margin-left:5px}
+  .conteudo{flex:1;overflow:auto;padding:14px}
+  .painel-form{background:#fff;border:1px solid var(--borda);border-radius:3px;padding:14px;margin-bottom:12px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 16px}
+  .ro label{display:block;font-size:10px;color:var(--label);font-weight:600;margin-bottom:2px}
+  .ro .v{border:1px solid var(--borda);background:#fafafa;padding:5px 7px;border-radius:2px;min-height:28px;font-size:12px;word-break:break-word;cursor:text;position:relative}
+  .ro .v:hover{background:#f2f7fc}
+  .ro .v.editado{background:var(--manual-bg);border-color:var(--manual)}
+  .ro .v input,.ro .v textarea{width:100%;border:none;background:transparent;font-size:12px;outline:none;resize:vertical}
+  .ro .acoes{float:right;font-size:10px;color:var(--manual);cursor:pointer;margin-left:6px}
+  .divergencia{font-size:10px;color:#b00020;margin-top:3px;line-height:1.4}
+  .divergencia a{color:var(--azul);cursor:pointer;text-decoration:underline}
+  .secao{font-size:11px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;padding-bottom:4px;border-bottom:1px solid var(--azul-claro);display:flex;justify-content:space-between;align-items:center}
+  .secao button{background:var(--azul);color:#fff;border:none;padding:3px 10px;border-radius:2px;font-size:11px;text-transform:none;letter-spacing:0}
+  pre.json{background:#1e1e1e;color:#d4d4d4;padding:12px;border-radius:3px;font-size:11px;overflow:auto;max-height:60vh}
+  .placeholder{display:flex;align-items:center;justify-content:center;height:100%;color:#8195a8}
+  .carregando{padding:30px;text-align:center;color:#666}
+  .aviso{background:var(--manual-bg);border:1px solid #e0cf8a;border-radius:3px;padding:8px 12px;font-size:11px;line-height:1.6;margin-bottom:12px}
+
+  /* ---------- LINHA DO TEMPO (ETAPAS) ---------- */
+  .etapas{position:relative;padding-left:6px}
+  .etapa{display:flex;gap:14px;position:relative;padding-bottom:18px}
+  .etapa:last-child{padding-bottom:0}
+  .etapa .trilho{position:relative;width:22px;flex:none;display:flex;justify-content:center}
+  .etapa .bola{width:20px;height:20px;border-radius:50%;background:#cfd8e0;margin-top:2px;z-index:2;
+               display:flex;align-items:center;justify-content:center}
+  .etapa .bola i{width:8px;height:8px;border-radius:50%;background:#fff;display:none}
+  .etapa.andamento .bola{background:var(--azul)} .etapa.andamento .bola i{display:block}
+  .etapa.concluido .bola{background:#2e8b45} .etapa.concluido .bola i{display:block}
+  .etapa.na .bola{background:#b9b9b9}
+  .etapa:not(:last-child) .trilho::after{content:'';position:absolute;top:24px;bottom:-20px;width:2px;background:#d5dde4;z-index:1}
+  .etapa .txt{flex:1;min-width:0}
+  .etapa .tit{font-weight:700;font-size:13px}
+  .etapa .sub{color:#7b8794;font-size:12px;line-height:1.5}
+  .etapa .sub b{color:#5a6672;font-weight:600}
+  .etapa .ferr{opacity:0;display:flex;gap:4px;align-self:flex-start}
+  .etapa:hover .ferr{opacity:1}
+  .etapa .ferr button{border:1px solid var(--borda);background:#fff;border-radius:2px;padding:1px 6px;font-size:11px}
+  .form-etapa{margin-top:8px;background:#fbfcfd;border:1px solid var(--borda);border-radius:3px;padding:10px;
+              display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 12px}
+  .form-etapa .full{grid-column:1/-1}
+  .form-etapa label{display:block;font-size:10px;color:var(--label);font-weight:600;margin-bottom:2px}
+  .form-etapa input,.form-etapa select,.form-etapa textarea{width:100%;padding:4px 6px;border:1px solid var(--borda);border-radius:2px;font-size:12px}
+
+  .hist{display:flex;gap:12px;min-height:380px}
+  .hist-lista{width:230px;background:#fff;border:1px solid var(--borda);border-radius:3px;display:flex;flex-direction:column}
+  .hist-lista .cab{display:flex;background:var(--cinza);border-bottom:1px solid var(--borda);font-size:11px;font-weight:600;padding:5px 8px}
+  .hist-lista .cab span:first-child{flex:1}
+  .hist-lista .rol{flex:1;overflow:auto}
+  .hist-item{display:flex;padding:5px 8px;font-size:12px;cursor:pointer;border-bottom:1px solid #f2f2f2}
+  .hist-item span:first-child{flex:1}
+  .hist-item.on{background:var(--azul);color:#fff}
+  .hist-item.man{border-left:3px solid var(--manual)}
+  .hist-det{flex:1;background:#fff;border:1px solid var(--borda);border-radius:3px;padding:14px;min-width:0}
+  .hist-topo{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+  .hist-desc{border:1px solid var(--borda);border-radius:3px;padding:10px;background:#fdfdfd;white-space:pre-wrap;min-height:150px;font-size:12px;line-height:1.55}
 </style>
 </head>
 <body>
-<div id="root"></div>
+
+<div id="login">
+  <div class="box">
+    <h1>Consulta de Sinistros</h1>
+    <p class="sub">Consulta via API · anotações manuais locais</p>
+    <label>Servidor</label><input id="lg-url" value="https://api.corpnuvem.com">
+    <label>E-mail</label><input id="lg-email" type="email" autocomplete="username">
+    <label>Senha</label><input id="lg-senha" type="password" autocomplete="current-password">
+    <button id="lg-btn">Entrar</button>
+    <div class="erro" id="lg-erro"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="titlebar">
+    <div class="ico"></div><strong style="font-size:12px">Controle de Sinistros</strong>
+    <div class="spacer"></div>
+    <span class="user" id="tb-user"></span>
+    <button id="tb-exportar">Backup ↓</button>
+    <button id="tb-importar">Restaurar ↑</button>
+    <input type="file" id="tb-arquivo" accept="application/json" style="display:none">
+    <button id="tb-sair">Sair</button>
+  </div>
+
+  <div class="filtros">
+    <div class="campo"><label>Tipo</label>
+      <select id="f-tipo"><option value="S">Sinistro</option><option value="A">Aviso</option><option value="T">Terceiro</option></select></div>
+    <div class="campo"><label>Período por</label>
+      <select id="f-tipodata"><option value="OCO">Ocorrência</option><option value="AVI">Aviso</option><option value="ENC">Encerramento</option><option value="MOD">Modificação</option></select></div>
+    <div class="campo"><label>Data inicial</label><input id="f-ini" type="date"></div>
+    <div class="campo"><label>Data final</label><input id="f-fim" type="date"></div>
+    <div class="campo"><label>Situação</label>
+      <select id="f-situacao"><option value="T">Todas</option><option value="P">Pendente</option><option value="A">Em andamento</option><option value="I">Indenizado</option><option value="E">Encerrado sem indenização</option></select></div>
+    <div class="campo"><label>Por página</label>
+      <select id="f-qtd"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></div>
+    <div class="campo"><label>Filtrar na tela</label><input id="f-texto" placeholder="nº, placa, segurado..."></div>
+    <button class="btn-buscar" id="f-btn">Sincronizar</button>
+    <button class="btn-limpar" id="f-reset">Limpar</button>
+  </div>
+
+  <div class="corpo">
+    <div class="lista">
+      <div class="head" id="ls-info">Nenhuma consulta realizada</div>
+      <div class="rolagem" id="ls-rolagem"><div class="vazio">Defina o período e clique em <b>Sincronizar</b>.</div></div>
+      <div class="paginacao"><button id="pg-ant">◀</button><span id="pg-num">Página 1</span><button id="pg-prox">▶</button></div>
+    </div>
+
+    <div class="detalhe">
+      <div class="det-head">
+        <div><div class="cli" id="d-cliente">—</div><div style="font-size:11px;color:#666" id="d-sub"></div></div>
+        <div class="sit" id="d-situacao"></div>
+      </div>
+      <div class="abas">
+        <div class="aba on" data-aba="sinistro">Sinistro</div>
+        <div class="aba" data-aba="etapas">Etapas<span class="badge" id="bd-etapas" style="display:none"></span></div>
+        <div class="aba" data-aba="historico">Histórico<span class="badge" id="bd-hist" style="display:none"></span></div>
+        <div class="aba" data-aba="notas">Anotações</div>
+        <div class="aba" data-aba="anexos">Anexos</div>
+        <div class="aba" data-aba="json">JSON</div>
+      </div>
+      <div class="conteudo" id="d-conteudo"><div class="placeholder">Selecione um sinistro na lista ao lado.</div></div>
+    </div>
+  </div>
+</div>
 
 <script>
-/* =========================================================================
-   Sinistro360 — versão reconstruída focada na integração com a API CORP
-   Campos reais da API (do _raw): codfil, nosnum, tipo, cia, ramo, codigo,
-   numapo, numend, item, valavi, valind, segurado, numsin, datavi, datoco,
-   datenc, situacao, placa, franquia, responsavel, oficina, tipo_atendimento,
-   descricao, observacoes, proxima_agenda, agendamento, datvis, datlib, valdes
-   ========================================================================= */
-
-/* ---------- Utilitários ---------- */
-var U = {
-  el:function(tag,attrs,children){
-    var e=document.createElement(tag); attrs=attrs||{};
-    for(var k in attrs){
-      if(k==="text") e.textContent=attrs[k];
-      else if(k==="html") e.innerHTML=attrs[k];
-      else if(k==="class") e.className=attrs[k];
-      else if(k.indexOf("on")===0 && typeof attrs[k]==="function") e.addEventListener(k.slice(2).toLowerCase(),attrs[k]);
-      else if(attrs[k]!=null) e.setAttribute(k,attrs[k]);
-    }
-    (children||[]).forEach(function(c){ if(c!=null) e.appendChild(typeof c==="string"?document.createTextNode(c):c); });
-    return e;
+/* ==================================================================
+   1. API  (camada volátil — sempre substituída na sincronização)
+   ================================================================== */
+const Api = {
+  base:'', token:'', email:'',
+  async login(base,email,senha){
+    this.base=base.replace(/\/+$/,'');
+    const r=await fetch(this.base+'/login',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email,senha,aplicacao:0})});
+    const txt=await r.text(); let d={}; try{d=JSON.parse(txt);}catch(e){}
+    if(!r.ok) throw new Error(d.message||('HTTP '+r.status+' — '+txt.slice(0,160)));
+    const t=d.token||d.token_auth||d.access_token||d.jwt||(d.data&&(d.data.token||d.data.token_auth));
+    if(!t) throw new Error('Token não reconhecido: '+txt.slice(0,160));
+    this.token=String(t); this.email=email;
+    sessionStorage.setItem('cn_sess',JSON.stringify({base:this.base,token:this.token,email}));
   },
-  uid:function(p){return (p||"id")+"_"+Math.random().toString(36).slice(2,9);},
-  fmtDateBR:function(iso){ if(!iso) return "—"; var m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[3]+"/"+m[2]+"/"+m[1]):iso; },
-  isoFromBR:function(v){ if(!v) return ""; v=String(v).trim(); var m=v.match(/^(\d{2})\/(\d{2})\/(\d{4})/); if(m) return m[3]+"-"+m[2]+"-"+m[1]; var i=v.match(/^(\d{4})-(\d{2})-(\d{2})/); return i?(i[1]+"-"+i[2]+"-"+i[3]):""; },
-  todayISO:function(){var d=new Date();return d.toISOString().slice(0,10);},
-  money:function(v){ v=Number(v)||0; return v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); },
-  val:function(v){ return (v==null||v===""||v==="0"||v===0)?"—":v; },
-  txt:function(v){ return (v==null||v==="")?"—":String(v); }
+  restaurar(){ try{const s=JSON.parse(sessionStorage.getItem('cn_sess')||'null');
+    if(s&&s.token){Object.assign(this,s);return true;}}catch(e){} return false; },
+  sair(){ sessionStorage.removeItem('cn_sess'); this.token=''; },
+  headers(){ return {'Authorization':this.token,'Content-Type':'application/json'}; },
+  async get(caminho){
+    const r=await fetch(this.base+caminho,{headers:this.headers()});
+    const txt=await r.text(); let d=null; try{d=JSON.parse(txt);}catch(e){}
+    return {status:r.status,ok:r.ok,dados:d,texto:txt};
+  },
+  async sinistros(p){
+    const qs=new URLSearchParams({tipo_sinistro:p.tipo,data_inicial:p.ini,data_final:p.fim,
+      tipo_data:p.tipoData,situacao:p.situacao,qtd_pag:p.qtd,pagina:p.pagina});
+    const r=await this.get('/sinistros?'+qs);
+    if(r.status===401||r.status===403) throw new Error('SESSAO_EXPIRADA');
+    if(r.status===404) return {itens:[],total:0,msg:(r.dados&&r.dados.message)||'Nenhum registro encontrado.'};
+    if(!r.ok) throw new Error((r.dados&&r.dados.message)||('HTTP '+r.status));
+    const d=r.dados||{};
+    const itens=d.sinistros||d.sinistro||d.dados||d.data||(Array.isArray(d)?d:[]);
+    return {itens,total:(d.header&&(d.header.count??d.header.total))??itens.length,bruto:d};
+  }
 };
 
-/* ---------- Configuração / storage ---------- */
-var CFG_KEY="corp_cfg", TOKEN_KEY="corp_token", DATA_KEY="corp_claims";
-function getCfg(){ try{return JSON.parse(localStorage.getItem(CFG_KEY))||{};}catch(e){return {};} }
-function setCfg(c){ localStorage.setItem(CFG_KEY,JSON.stringify(c)); }
-function getToken(){ return localStorage.getItem(TOKEN_KEY)||""; }
-function setToken(t){ if(t) localStorage.setItem(TOKEN_KEY,t); else localStorage.removeItem(TOKEN_KEY); }
-function loadClaims(){ try{return JSON.parse(localStorage.getItem(DATA_KEY))||[];}catch(e){return [];} }
-function saveClaims(a){ localStorage.setItem(DATA_KEY,JSON.stringify(a)); }
+/* ==================================================================
+   2. LOCAL — camada permanente. A sincronização NUNCA escreve aqui.
+   ================================================================== */
+const ETAPAS_PADRAO = [
+  {titulo:'Vistoria',            descricao:'Vistoria do veículo'},
+  {titulo:'Análise / atendimento', descricao:''},
+  {titulo:'Liberação',           descricao:'Liberação do processo'},
+  {titulo:'Encerramento',        descricao:''}
+];
+const STATUS_ETAPA = ['','Pendente','Em andamento','Concluído','Não se aplica'];
 
-/* ---------- Camada de API CORP ---------- */
-var CorpAPI=(function(){
-  function base(){ var u=(getCfg().url||"").trim().replace(/\/+$/,""); if(u && !/^https?:\/\//.test(u)) u="https://"+u; return u; }
-  function request(path,opts){
-    opts=opts||{};
-    var headers={};
-    if(opts.body) headers["Content-Type"]="application/json";
-    if(opts.auth!==false){ var t=getToken(); if(t) headers["Authorization"]=t; }
-    return fetch(base()+path,{
-      method:opts.method||"GET",
-      headers:headers,
-      body:opts.body?JSON.stringify(opts.body):undefined
-    }).then(function(r){
-      return r.text().then(function(txt){
-        var data; try{data=JSON.parse(txt);}catch(e){data=txt;}
-        if(!r.ok){ var msg=(data&&data.message)||(data&&data.mensagem)||("HTTP "+r.status); var err=new Error(msg); err.status=r.status; err.data=data; throw err; }
-        return data;
-      });
-    });
+const Local = {
+  KEY:'cn_manual_v1',
+  todos(){ try{ return JSON.parse(localStorage.getItem(this.KEY)||'{}'); }catch(e){ return {}; } },
+  gravaTudo(o){ localStorage.setItem(this.KEY, JSON.stringify(o)); },
+  reg(id){ return this.todos()[id] || {campos:{},etapas:null,historico:[],notas:'',extras:[]}; },
+  muta(id,fn){
+    const t=this.todos();
+    const r=t[id]||{campos:{},etapas:null,historico:[],notas:'',extras:[]};
+    fn(r); r.alterado=new Date().toLocaleString('pt-BR');
+    t[id]=r; this.gravaTudo(t);
+  },
+  temAlgo(id){
+    const r=this.todos()[id]; if(!r) return false;
+    return !!(Object.keys(r.campos||{}).length || (r.etapas||[]).some(e=>e.status||e.responsavel||e.data||e.obs)
+           || (r.historico||[]).length || (r.notas||'').trim() || (r.extras||[]).length);
+  },
+  campo(id,ch){ const c=this.reg(id).campos||{}; return c[ch]; },
+  setCampo(id,ch,valor,apiAtual){ this.muta(id,r=>{ r.campos=r.campos||{}; r.campos[ch]={v:valor,api:apiAtual}; }); },
+  limpaCampo(id,ch){ this.muta(id,r=>{ if(r.campos) delete r.campos[ch]; }); },
+  etapas(id){
+    const r=this.reg(id);
+    if(r.etapas && r.etapas.length) return r.etapas;
+    return ETAPAS_PADRAO.map((e,i)=>({id:'e'+i+'_'+Date.now(),titulo:e.titulo,descricao:e.descricao,
+      responsavel:'',status:'',data:'',hora:'',obs:''}));
+  },
+  setEtapas(id,arr){ this.muta(id,r=>{ r.etapas=arr; }); },
+  historico(id){ return this.reg(id).historico||[]; },
+  addHistorico(id,h){ this.muta(id,r=>{ r.historico=r.historico||[]; r.historico.push(h); }); },
+  setHistorico(id,arr){ this.muta(id,r=>{ r.historico=arr; }); },
+  notas(id){ return this.reg(id).notas||''; },
+  setNotas(id,t){ this.muta(id,r=>{ r.notas=t; }); },
+  extras(id){ return this.reg(id).extras||[]; },
+  setExtras(id,a){ this.muta(id,r=>{ r.extras=a; }); },
+  exportar(){
+    const blob=new Blob([JSON.stringify({versao:1,gerado:new Date().toISOString(),dados:this.todos()},null,2)],
+      {type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='sinistros-anotacoes-'+new Date().toISOString().slice(0,10)+'.json';
+    a.click(); URL.revokeObjectURL(a.href);
+  },
+  importar(texto){
+    const j=JSON.parse(texto);
+    const novos=j.dados||j;
+    const atual=this.todos();
+    let n=0;
+    for(const k of Object.keys(novos)){ atual[k]=novos[k]; n++; }
+    this.gravaTudo(atual); return n;
   }
-  function login(){
-    var c=getCfg();
-    return request("/login",{method:"POST",auth:false,body:{email:c.email,senha:c.senha,aplicacao:Number(c.aplicacao||0)}})
-      .then(function(resp){
-        var token=resp&&(resp.token||resp.access_token||(resp.dados&&resp.dados.token)||(resp.data&&resp.data.token));
-        if(!token) throw new Error("Login sem token na resposta.");
-        setToken(token); return token;
-      });
-  }
-  function withAuth(fn){
-    if(!getToken()) return login().then(fn);
-    return fn().catch(function(e){ if(e.status===401){ setToken(""); return login().then(fn); } throw e; });
-  }
-  function fetchSinistros(params){
-    params=params||{};
-    var hoje=new Date(), ini=new Date(); ini.setFullYear(hoje.getFullYear()-5);
-    function br(d){var dd=("0"+d.getDate()).slice(-2),mm=("0"+(d.getMonth()+1)).slice(-2);return dd+"/"+mm+"/"+d.getFullYear();}
-    var def={tipo_sinistro:"S",data_inicial:br(ini),data_final:br(hoje),tipo_data:"OCO",situacao:"T",qtd_pag:100,pagina:1};
-    for(var k in params) def[k]=params[k];
-    var qs=Object.keys(def).map(function(k){return encodeURIComponent(k)+"="+encodeURIComponent(def[k]);}).join("&");
-    return withAuth(function(){ return request("/sinistros?"+qs,{method:"GET"}); });
-  }
-  function testConnection(){ setToken(""); return login().then(function(){return true;}); }
-  return {login:login,fetchSinistros:fetchSinistros,testConnection:testConnection,base:base};
-})();
+};
 
-/* ---------- Mapeamento CORP -> registro interno (TODOS os campos) ---------- */
-function mapSituacao(s){
-  s=String(s||"").toUpperCase();
-  if(s.indexOf("INDENIZ")>=0) return {label:"Indenizado",cls:"green"};
-  if(s.indexOf("ENCERR")>=0)  return {label:"Encerrado",cls:"gray"};
-  if(s.indexOf("ANDAMENTO")>=0)return {label:"Em andamento",cls:"amber"};
-  if(s.indexOf("PENDENTE")>=0) return {label:"Pendente",cls:"amber"};
-  if(s.indexOf("NEGAD")>=0||s.indexOf("RECUS")>=0) return {label:"Negado",cls:"red"};
-  if(s.indexOf("ABERT")>=0)    return {label:"Aberto",cls:"blue"};
-  return {label:(s||"—"),cls:"blue"};
+/* ==================================================================
+   3. UTILITÁRIOS
+   ================================================================== */
+const $=s=>document.querySelector(s);
+function campo(o,nomes,padrao='—'){
+  for(const n of nomes) for(const k of Object.keys(o||{}))
+    if(k.toLowerCase()===n.toLowerCase()){ const v=o[k]; if(v!==null&&v!==undefined&&v!=='') return v; }
+  return padrao;
 }
-function mapCorp(c){
-  return {
-    id:"clm_"+(c.codfil||"0")+"_"+(c.nosnum||U.uid("")),
-    // Identificação
-    codfil:c.codfil, nosnum:c.nosnum, numsin:c.numsin||"", tipo:c.tipo||"", codigo:c.codigo,
-    // Cliente
-    segurado:c.segurado||"", cpfcnpj:c.cpfcnpj||c.documento||"",
-    // Apólice / produto
-    cia:c.cia||"", ramo:c.ramo||"", numapo:c.numapo||"", numend:c.numend||"", item:c.item,
-    // Veículo
-    placa:c.placa||"",
-    // Situação / valores
-    situacao:c.situacao||"", franquia:Number(c.franquia)||0,
-    valavi:Number(c.valavi)||0, valind:Number(c.valind)||0, valdes:Number(c.valdes)||0,
-    // Datas
-    datavi:U.isoFromBR(c.datavi), datoco:U.isoFromBR(c.datoco), datenc:U.isoFromBR(c.datenc),
-    datvis:U.isoFromBR(c.datvis), datlib:U.isoFromBR(c.datlib),
-    proxima_agenda:U.isoFromBR(c.proxima_agenda), agendamento:U.isoFromBR(c.agendamento),
-    // Atendimento
-    responsavel:c.responsavel||"", oficina:c.oficina?String(c.oficina).trim():"",
-    tipo_atendimento:c.tipo_atendimento||"", descricao:c.descricao||"", observacoes:c.observacoes||"",
-    _raw:c
+function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function brData(iso){ if(!iso) return ''; const [a,m,d]=iso.split('-'); return `${d}/${m}/${a}`; }
+function moeda(v){ const n=Number(String(v).replace(',','.'));
+  return isNaN(n)?(v??'—'):n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function ordem(d,h){ const m=String(d||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  return (m?+(m[3]+m[2]+m[1]):0)*10000 + (+String(h||'').replace(/\D/g,'').slice(0,4)||0); }
+const SITUACAO={P:'PENDENTE',A:'EM ANDAMENTO',I:'INDENIZADO',E:'ENCERRADO SEM IND.',T:'—'};
+const Chave={
+  cod:s=>campo(s,['codsin','codigo','id','cod_sinistro','nosnum'],''),
+  num:s=>campo(s,['numsin','num_sinistro','numero_sinistro'],''),
+  filial:s=>campo(s,['codfil','filial'],'1')
+};
+/* Identificador estável do sinistro — base de todo o armazenamento local */
+function idDe(s){ return String(Chave.num(s)||Chave.cod(s)||'').trim(); }
+function idSel(){ return Estado.sel? idDe(Estado.sel):''; }
+
+const Estado={itens:[],filtrados:[],pagina:1,sel:null,aba:'sinistro',cacheHist:{},histSel:0,etapaAberta:null};
+
+/* ==================================================================
+   4. HISTÓRICO VINDO DA API (mesclado com os manuais)
+   ================================================================== */
+const Hist={
+  template: localStorage.getItem('cn_hist_tpl')||'',
+  candidatos:['/atendimentos?codsin={cod}','/atendimento?codsin={cod}','/atendimentos?codigo={cod}&tipo=S',
+    '/sinistro_historico?codigo={cod}','/sinistro_historico?codsin={cod}','/historico_sinistro?codigo={cod}',
+    '/sinistro_andamento?codigo={cod}','/sinistros/{cod}/historico','/sinistros/{cod}'],
+  monta(t,s){ return t.replace('{cod}',encodeURIComponent(Chave.cod(s)))
+                      .replace('{num}',encodeURIComponent(Chave.num(s)))
+                      .replace('{codfil}',encodeURIComponent(Chave.filial(s))); },
+  extrair(raiz){
+    let achado=null;
+    const parece=a=>Array.isArray(a)&&a.length&&a.every(x=>x&&typeof x==='object')&&
+      a.some(x=>{const k=Object.keys(x).map(s=>s.toLowerCase()).join('|');
+        return /desc|texto|obs|ocorren|andament|hist/.test(k)&&/dat|hora/.test(k);});
+    (function anda(no,p){
+      if(achado||p>6||!no||typeof no!=='object') return;
+      if(Array.isArray(no)){ if(parece(no)){achado=no;return;} no.forEach(x=>anda(x,p+1)); return; }
+      for(const k of Object.keys(no)){ const v=no[k];
+        if(Array.isArray(v)&&(/hist|andament|ocorren|atendim/i.test(k)||parece(v))&&v.length&&typeof v[0]==='object'){achado=v;return;}
+        anda(v,p+1); if(achado) return; }
+    })(raiz,0);
+    return achado;
+  },
+  normaliza(a){ return (a||[]).map(x=>({
+    data:campo(x,['data','datinc','dathis','dt'],''), hora:campo(x,['hora','hrhis','horainc'],''),
+    referente:campo(x,['referente','referente_ao','tipo','destino'],''),
+    descricao:campo(x,['descricao','texto','historico','obs','ocorrencia'],''),
+    usuario:campo(x,['usuario','operador','digitador','login'],''), manual:false })); },
+  async buscar(s){
+    const emb=this.extrair(s);
+    if(emb&&emb.length) return {origem:'embutido',itens:this.normaliza(emb)};
+    if(!this.template) return {origem:'sem_endpoint',itens:[]};
+    const r=await Api.get(this.monta(this.template,s));
+    if(r.status===401||r.status===403) throw new Error('SESSAO_EXPIRADA');
+    if(!r.ok) return {origem:'erro',itens:[],erro:'HTTP '+r.status};
+    const arr=this.extrair(r.dados)||(Array.isArray(r.dados)?r.dados:[]);
+    return {origem:this.template,itens:this.normaliza(arr)};
+  },
+  async descobrir(s,log){
+    for(const tpl of this.candidatos){
+      const url=this.monta(tpl,s); let r;
+      try{ r=await Api.get(url); }catch(e){ log(url,'falha de rede',false); continue; }
+      const arr=r.ok?(this.extrair(r.dados)||(Array.isArray(r.dados)?r.dados:null)):null;
+      const bom=!!(arr&&arr.length);
+      log(url,r.status+(bom?' — '+arr.length+' registro(s)':''),bom);
+      if(bom){ this.template=tpl; localStorage.setItem('cn_hist_tpl',tpl); return tpl; }
+    }
+    return null;
+  }
+};
+
+/* ==================================================================
+   5. LOGIN
+   ================================================================== */
+$('#lg-btn').onclick=async()=>{
+  const b=$('#lg-btn'),e=$('#lg-erro'); e.textContent=''; b.disabled=true; b.textContent='Conectando...';
+  try{ await Api.login($('#lg-url').value.trim(),$('#lg-email').value.trim(),$('#lg-senha').value); abrirApp(); }
+  catch(err){ e.textContent=/Failed to fetch|NetworkError/i.test(err.message)
+    ? 'Falha de conexão — possível bloqueio de CORS. Nesse caso é preciso um proxy no servidor.' : err.message; }
+  finally{ b.disabled=false; b.textContent='Entrar'; }
+};
+$('#lg-senha').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#lg-btn').click(); });
+function abrirApp(){
+  $('#login').style.display='none'; $('#app').style.display='flex';
+  $('#tb-user').textContent=Api.email;
+  const h=new Date(),i=new Date(h.getFullYear(),h.getMonth(),1);
+  $('#f-ini').value=i.toISOString().slice(0,10); $('#f-fim').value=h.toISOString().slice(0,10);
+}
+$('#tb-sair').onclick=()=>{ Api.sair(); location.reload(); };
+$('#tb-exportar').onclick=()=>Local.exportar();
+$('#tb-importar').onclick=()=>$('#tb-arquivo').click();
+$('#tb-arquivo').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const l=new FileReader();
+  l.onload=()=>{ try{ const n=Local.importar(l.result);
+      alert(n+' sinistro(s) restaurado(s).'); if(Estado.sel) renderDetalhe(); renderLista(); }
+    catch(err){ alert('Arquivo inválido: '+err.message); } };
+  l.readAsText(f); e.target.value='';
+};
+
+/* ==================================================================
+   6. SINCRONIZAÇÃO  (só substitui a camada da API)
+   ================================================================== */
+async function sincronizar(pagina=1){
+  const ini=$('#f-ini').value,fim=$('#f-fim').value;
+  if(!ini||!fim){ alert('Informe a data inicial e a data final.'); return; }
+  Estado.pagina=pagina; Estado.cacheHist={};
+  $('#ls-rolagem').innerHTML='<div class="carregando">Sincronizando...</div>';
+  try{
+    const r=await Api.sinistros({tipo:$('#f-tipo').value,ini:brData(ini),fim:brData(fim),
+      tipoData:$('#f-tipodata').value,situacao:$('#f-situacao').value,qtd:$('#f-qtd').value,pagina});
+    Estado.itens=r.itens; filtrar();
+    $('#ls-info').textContent=r.itens.length? `${r.itens.length} registro(s) · total ${r.total}`
+                                            : (r.msg||'Nenhum registro encontrado.');
+    /* o registro selecionado é reapontado para o novo objeto da API,
+       mas as anotações continuam vindo do Local pelo mesmo id */
+    if(Estado.sel){
+      const id=idSel();
+      const novo=Estado.itens.find(x=>idDe(x)===id);
+      if(novo){ Estado.sel=novo; renderDetalhe(); }
+    }
+  }catch(e){
+    if(e.message==='SESSAO_EXPIRADA'){ alert('Sessão expirada.'); Api.sair(); location.reload(); return; }
+    $('#ls-rolagem').innerHTML=`<div class="vazio" style="color:#b00020">${esc(e.message)}</div>`;
+  }
+  $('#pg-num').textContent='Página '+Estado.pagina; $('#pg-ant').disabled=Estado.pagina<=1;
+}
+function filtrar(){
+  const t=$('#f-texto').value.trim().toLowerCase();
+  Estado.filtrados=!t?Estado.itens:Estado.itens.filter(o=>JSON.stringify(o).toLowerCase().includes(t));
+  renderLista();
+}
+function renderLista(){
+  const box=$('#ls-rolagem');
+  if(!Estado.filtrados.length){ box.innerHTML='<div class="vazio">Nenhum registro para exibir.</div>'; return; }
+  box.innerHTML=`<table><thead><tr><th>Nº Sinistro</th><th>Ocorrência</th><th>Segurado</th><th>Situação</th></tr></thead><tbody>${
+    Estado.filtrados.map((o,i)=>{
+      const sit=campo(o,['situacao','status'],'');
+      return `<tr data-i="${i}">
+        <td>${esc(campo(o,['numsin','num_sinistro','codigo']))}${Local.temAlgo(idDe(o))?'<span class="marca" title="possui anotações manuais"></span>':''}</td>
+        <td>${esc(campo(o,['datoco','data_ocorrencia'],''))}</td>
+        <td>${esc(campo(o,['cliente','segurado','nome']))}</td>
+        <td>${esc(SITUACAO[sit]||sit)}</td></tr>`;
+    }).join('')}</tbody></table>`;
+  box.querySelectorAll('tbody tr').forEach(tr=>{
+    tr.onclick=()=>{
+      box.querySelectorAll('tr.sel').forEach(x=>x.classList.remove('sel'));
+      tr.classList.add('sel');
+      Estado.sel=Estado.filtrados[+tr.dataset.i]; Estado.histSel=0; Estado.etapaAberta=null;
+      renderDetalhe(); carregarHist();
+    };
+  });
+}
+
+/* ==================================================================
+   7. CAMPO EDITÁVEL  (manual sobrepõe API)
+   ================================================================== */
+function campoEd(chave,rotulo,valorApi,opc={}){
+  const id=idSel(), m=Local.campo(id,chave);
+  const temManual=m!==undefined;
+  const exibido=temManual?m.v:valorApi;
+  const mudouNaApi=temManual && String(m.api??'')!==String(valorApi??'');
+  return `<div class="ro">
+    <label>${rotulo}
+      ${temManual?`<span class="acoes" data-restaurar="${esc(chave)}" title="restaurar valor da API">↺ API</span>`:''}
+    </label>
+    <div class="v ${temManual?'editado':''}" data-ed="${esc(chave)}" data-api="${esc(valorApi??'')}"
+         data-multi="${opc.multi?1:0}">${esc(exibido||'')||'<span style="color:#bbb">—</span>'}</div>
+    ${mudouNaApi?`<div class="divergencia">A API agora traz “${esc(valorApi)}”.
+       <a data-aceitar="${esc(chave)}">usar valor da API</a></div>`:''}
+  </div>`;
+}
+function ligarEdicao(raiz){
+  raiz.querySelectorAll('[data-ed]').forEach(el=>{
+    el.onclick=()=>{
+      if(el.querySelector('input,textarea')) return;
+      const chave=el.dataset.ed, api=el.dataset.api, multi=el.dataset.multi==='1';
+      const m=Local.campo(idSel(),chave);
+      const atual=m!==undefined?m.v:api;
+      el.innerHTML = multi
+        ? `<textarea rows="4">${esc(atual)}</textarea>`
+        : `<input value="${esc(atual)}">`;
+      const inp=el.firstChild; inp.focus();
+      const salvar=()=>{
+        const novo=inp.value;
+        if(novo===api) Local.limpaCampo(idSel(),chave);
+        else Local.setCampo(idSel(),chave,novo,api);
+        renderDetalhe(); renderLista();
+      };
+      inp.onblur=salvar;
+      inp.onkeydown=e=>{
+        if(e.key==='Enter'&&!multi){ e.preventDefault(); inp.blur(); }
+        if(e.key==='Escape'){ inp.onblur=null; renderDetalhe(); }
+      };
+    };
+  });
+  raiz.querySelectorAll('[data-restaurar]').forEach(el=>{
+    el.onclick=e=>{ e.stopPropagation(); Local.limpaCampo(idSel(),el.dataset.restaurar); renderDetalhe(); renderLista(); };
+  });
+  raiz.querySelectorAll('[data-aceitar]').forEach(el=>{
+    el.onclick=()=>{ Local.limpaCampo(idSel(),el.dataset.aceitar); renderDetalhe(); };
+  });
+}
+
+/* ==================================================================
+   8. DETALHE
+   ================================================================== */
+function renderDetalhe(){
+  const o=Estado.sel; if(!o) return;
+  const id=idSel();
+  const sit=campo(o,['situacao','status'],'');
+  $('#d-cliente').textContent=campo(o,['cliente','segurado','nome']);
+  $('#d-situacao').textContent=SITUACAO[sit]||sit||'';
+  $('#d-sub').textContent='Nº '+campo(o,['numsin','num_sinistro','codigo'])+
+    (Local.reg(id).alterado?' · anotações salvas em '+Local.reg(id).alterado:'');
+  const c=$('#d-conteudo');
+
+  if(!id){
+    c.innerHTML='<div class="aviso">Este registro não possui número nem código identificável, '+
+      'por isso não é possível vincular anotações manuais a ele com segurança.</div>'; return;
+  }
+
+  if(Estado.aba==='etapas'){ renderEtapas(c); return; }
+  if(Estado.aba==='historico'){ renderHistorico(c); return; }
+  if(Estado.aba==='notas'){ renderNotas(c); return; }
+  if(Estado.aba==='json'){
+    c.innerHTML=`<div class="painel-form"><div class="secao">Retorno bruto da API</div>
+      <pre class="json">${esc(JSON.stringify(o,null,2))}</pre></div>`; return;
+  }
+  if(Estado.aba==='anexos'){
+    const a=o.anexos||[];
+    c.innerHTML=`<div class="painel-form"><div class="secao">Anexos</div>${
+      a.length? a.map(x=>{const u=campo(x,['url','link'],'');
+        return `<div style="padding:6px 0;border-bottom:1px solid #eee">📎 ${esc(campo(x,['nome','arquivo'],'arquivo'))}${
+          u&&u!=='—'?` — <a href="${esc(u)}" target="_blank" rel="noopener">abrir</a>`:''}</div>`;}).join('')
+        : '<div style="color:#888;padding:12px 0">Nenhum anexo retornado.</div>'}</div>`; return;
+  }
+
+  /* aba Sinistro — todos os campos editáveis */
+  const extras=Local.extras(id);
+  c.innerHTML=`
+    <div class="painel-form">
+      <div class="secao">Dados do sinistro <span style="font-weight:400;text-transform:none;color:#888;font-size:10px">clique em qualquer campo para editar</span></div>
+      <div class="grid">
+        ${campoEd('datoco','Dt. Ocorrência',campo(o,['datoco','data_ocorrencia'],''))}
+        ${campoEd('hroco','Hr. Ocorrência',campo(o,['hroco','hora_ocorrencia'],''))}
+        ${campoEd('numsin','Nº Sinistro',campo(o,['numsin','num_sinistro'],''))}
+        ${campoEd('apolice','Apólice',campo(o,['numapo','apolice'],''))}
+        ${campoEd('seguradora','Seguradora',campo(o,['seguradora','cia'],''))}
+        ${campoEd('ramo','Ramo',campo(o,['ramo'],''))}
+        ${campoEd('item','Item sinistrado',campo(o,['item','item_sinistrado'],''))}
+        ${campoEd('descitem','Descrição do item',campo(o,['descricao_item','veiculo'],''))}
+        ${campoEd('placa','Placa',campo(o,['placa'],''))}
+        ${campoEd('oficina','Oficina',campo(o,['oficina'],''))}
+        ${campoEd('franquia','Franquia',moeda(campo(o,['franquia','vlfranquia'],0)))}
+        ${campoEd('datavi','Dt. Aviso',campo(o,['datavi','data_aviso'],''))}
+        ${campoEd('datvis','Dt. Vistoria',campo(o,['datvis','data_vistoria'],''))}
+        ${campoEd('datlib','Dt. Liberação',campo(o,['datlib','data_liberacao'],''))}
+        ${campoEd('datenc','Encerramento',campo(o,['datenc','data_encerramento'],''))}
+        ${campoEd('vlavisado','Valor avisado',moeda(campo(o,['vlavisado','valor_avisado'],0)))}
+        ${campoEd('vldesp','Vl. Despesas',moeda(campo(o,['vldespesas','valor_despesas'],0)))}
+        ${campoEd('vlind','Vl. Indenizado',moeda(campo(o,['vlindenizado','valor_indenizado'],0)))}
+      </div>
+    </div>
+    <div class="painel-form">
+      <div class="secao">Observações</div>
+      ${campoEd('observacoes','Observações',campo(o,['observacoes','obs'],''),{multi:true})}
+    </div>
+    <div class="painel-form">
+      <div class="secao">Campos personalizados <button id="btn-extra">+ Novo campo</button></div>
+      ${extras.length? `<div class="grid">${extras.map(x=>`
+          <div class="ro"><label>${esc(x.rotulo)}
+            <span class="acoes" data-delextra="${esc(x.id)}">✕</span></label>
+            <div class="v editado" data-extra="${esc(x.id)}">${esc(x.valor)||'<span style="color:#bbb">—</span>'}</div>
+          </div>`).join('')}</div>`
+        : '<div style="color:#888;font-size:12px">Nenhum campo personalizado criado.</div>'}
+    </div>`;
+  ligarEdicao(c);
+  ligarExtras(c);
+}
+
+function ligarExtras(c){
+  const id=idSel();
+  const b=c.querySelector('#btn-extra');
+  if(b) b.onclick=()=>{
+    const nome=prompt('Nome do novo campo:'); if(!nome) return;
+    const a=Local.extras(id); a.push({id:'x'+Date.now(),rotulo:nome,valor:''});
+    Local.setExtras(id,a); renderDetalhe();
+  };
+  c.querySelectorAll('[data-extra]').forEach(el=>{
+    el.onclick=()=>{
+      if(el.querySelector('input')) return;
+      const a=Local.extras(id), x=a.find(y=>y.id===el.dataset.extra);
+      el.innerHTML=`<input value="${esc(x.valor)}">`;
+      const i=el.firstChild; i.focus();
+      i.onblur=()=>{ x.valor=i.value; Local.setExtras(id,a); renderDetalhe(); };
+      i.onkeydown=e=>{ if(e.key==='Enter') i.blur(); };
+    };
+  });
+  c.querySelectorAll('[data-delextra]').forEach(el=>{
+    el.onclick=e=>{ e.stopPropagation();
+      Local.setExtras(id,Local.extras(id).filter(y=>y.id!==el.dataset.delextra)); renderDetalhe(); };
+  });
+}
+
+/* ==================================================================
+   9. ETAPAS — 100% manuais, nunca preenchidas pela API
+   ================================================================== */
+function classeEtapa(s){
+  if(s==='Em andamento') return 'andamento';
+  if(s==='Concluído')    return 'concluido';
+  if(s==='Não se aplica')return 'na';
+  return '';
+}
+function renderEtapas(c){
+  const id=idSel(), etapas=Local.etapas(id);
+  c.innerHTML=`
+    <div class="aviso">Estas etapas são de preenchimento <b>exclusivamente manual</b>.
+      Nenhum dado da API é gravado aqui, e a sincronização não altera nada deste quadro.</div>
+    <div class="painel-form">
+      <div class="secao">Andamento do processo <button id="et-nova">+ Nova etapa</button></div>
+      <div class="etapas">${etapas.map((e,i)=>{
+        const aberta=Estado.etapaAberta===e.id;
+        return `<div class="etapa ${classeEtapa(e.status)}" data-id="${esc(e.id)}">
+          <div class="trilho"><div class="bola"><i></i></div></div>
+          <div class="txt">
+            <div class="tit">${esc(e.titulo||'(sem título)')}</div>
+            <div class="sub">
+              ${e.descricao?esc(e.descricao)+'<br>':''}
+              ${e.responsavel?'<b>Responsável:</b> '+esc(e.responsavel)+'<br>':''}
+              ${e.data||e.hora?'<b>Data:</b> '+esc(e.data)+' '+esc(e.hora)+'<br>':''}
+              ${esc(e.status||'—')}
+              ${e.obs?'<br>'+esc(e.obs):''}
+            </div>
+            ${aberta?`<div class="form-etapa" data-form="${esc(e.id)}">
+              <div class="full"><label>Título</label><input data-f="titulo" value="${esc(e.titulo)}"></div>
+              <div class="full"><label>Descrição</label><input data-f="descricao" value="${esc(e.descricao)}"></div>
+              <div><label>Status</label><select data-f="status">${
+                STATUS_ETAPA.map(s=>`<option ${s===e.status?'selected':''} value="${esc(s)}">${s||'(em branco)'}</option>`).join('')}</select></div>
+              <div><label>Responsável</label><input data-f="responsavel" value="${esc(e.responsavel)}"></div>
+              <div><label>Data</label><input data-f="data" value="${esc(e.data)}" placeholder="dd/mm/aaaa"></div>
+              <div><label>Hora</label><input data-f="hora" value="${esc(e.hora)}" placeholder="hh:mm"></div>
+              <div class="full"><label>Observação</label><textarea data-f="obs" rows="2">${esc(e.obs)}</textarea></div>
+            </div>`:''}
+          </div>
+          <div class="ferr">
+            <button data-ed-etapa="${esc(e.id)}">${aberta?'ok':'editar'}</button>
+            <button data-sobe="${esc(e.id)}" ${i===0?'disabled':''}>↑</button>
+            <button data-desce="${esc(e.id)}" ${i===etapas.length-1?'disabled':''}>↓</button>
+            <button data-del-etapa="${esc(e.id)}">✕</button>
+          </div>
+        </div>`;
+      }).join('')}</div>
+    </div>`;
+
+  const salvar=arr=>{ Local.setEtapas(id,arr); atualizaBadges(); };
+
+  c.querySelector('#et-nova').onclick=()=>{
+    const a=Local.etapas(id);
+    a.push({id:'e'+Date.now(),titulo:'Nova etapa',descricao:'',responsavel:'',status:'',data:'',hora:'',obs:''});
+    salvar(a); Estado.etapaAberta=a[a.length-1].id; renderEtapas(c);
+  };
+  c.querySelectorAll('[data-ed-etapa]').forEach(b=>b.onclick=()=>{
+    Estado.etapaAberta = Estado.etapaAberta===b.dataset.edEtapa? null : b.dataset.edEtapa;
+    renderEtapas(c);
+  });
+  c.querySelectorAll('[data-del-etapa]').forEach(b=>b.onclick=()=>{
+    if(!confirm('Excluir esta etapa?')) return;
+    salvar(Local.etapas(id).filter(x=>x.id!==b.dataset.delEtapa)); renderEtapas(c);
+  });
+  const mover=(idet,d)=>{ const a=Local.etapas(id),i=a.findIndex(x=>x.id===idet),j=i+d;
+    if(j<0||j>=a.length) return; [a[i],a[j]]=[a[j],a[i]]; salvar(a); renderEtapas(c); };
+  c.querySelectorAll('[data-sobe]').forEach(b=>b.onclick=()=>mover(b.dataset.sobe,-1));
+  c.querySelectorAll('[data-desce]').forEach(b=>b.onclick=()=>mover(b.dataset.desce,1));
+
+  c.querySelectorAll('[data-form]').forEach(f=>{
+    f.querySelectorAll('[data-f]').forEach(inp=>{
+      inp.onchange=()=>{
+        const a=Local.etapas(id), e=a.find(x=>x.id===f.dataset.form);
+        e[inp.dataset.f]=inp.value; salvar(a);
+        if(inp.dataset.f==='status'||inp.dataset.f==='titulo') renderEtapas(c);
+      };
+    });
+  });
+  atualizaBadges();
+}
+
+/* ==================================================================
+   10. HISTÓRICO — API (leitura) + lançamentos manuais (permanentes)
+   ================================================================== */
+async function carregarHist(){
+  const s=Estado.sel,id=idSel(); if(!s||!id) return;
+  if(Estado.cacheHist[id]){ atualizaBadges(); return; }
+  try{ Estado.cacheHist[id]=await Hist.buscar(s); }catch(e){ Estado.cacheHist[id]={itens:[],origem:'erro'}; }
+  atualizaBadges();
+  if(Estado.aba==='historico') renderDetalhe();
+}
+function histCombinado(){
+  const id=idSel();
+  const api=(Estado.cacheHist[id]?Estado.cacheHist[id].itens:[]).map(x=>({...x,manual:false}));
+  const man=Local.historico(id).map(x=>({...x,manual:true}));
+  return [...api,...man].sort((a,b)=>ordem(b.data,b.hora)-ordem(a.data,a.hora));
+}
+function renderHistorico(c){
+  const id=idSel(), itens=histCombinado(), r=Estado.cacheHist[id];
+  const i=Math.min(Estado.histSel,Math.max(0,itens.length-1)), h=itens[i];
+  c.innerHTML=`
+    <div class="aviso">Os lançamentos com faixa laranja foram digitados por você e <b>nunca são apagados</b>
+      pela sincronização. Origem da API: ${r? esc(String(r.origem)) : 'não consultada'}.
+      <button id="h-desc" style="margin-left:8px">Descobrir endpoint da API</button>
+      <div id="h-log" style="display:none;font-family:monospace;font-size:11px;margin-top:6px;max-height:150px;overflow:auto"></div>
+    </div>
+    <div class="painel-form">
+      <div class="secao">Histórico <button id="h-novo">+ Novo lançamento manual</button></div>
+      ${itens.length? `<div class="hist">
+        <div class="hist-lista">
+          <div class="cab"><span>Data</span><span>Hora</span></div>
+          <div class="rol">${itens.map((x,k)=>`<div class="hist-item ${k===i?'on':''} ${x.manual?'man':''}" data-k="${k}">
+            <span>${esc(x.data||'—')}</span><span>${esc(x.hora||'')}</span></div>`).join('')}</div>
+        </div>
+        <div class="hist-det">
+          <div class="hist-topo">
+            <div class="ro"><label>Data</label><div class="v">${esc(h.data||'—')}</div></div>
+            <div class="ro"><label>Hora</label><div class="v">${esc(h.hora||'—')}</div></div>
+            <div class="ro" style="flex:1"><label>Referente ao</label><div class="v">${esc(h.referente||'—')}</div></div>
+          </div>
+          <div class="secao">Descrição</div>
+          <div class="hist-desc">${esc(h.descricao||'')}</div>
+          <div style="margin-top:8px;font-size:11px;color:${h.manual?'var(--manual)':'var(--azul)'}">
+            ${h.manual?'Lançamento manual — <a href="#" id="h-edit">editar</a> · <a href="#" id="h-del">excluir</a>'
+                      :'Lançamento vindo da API (somente leitura)'}
+          </div>
+        </div></div>`
+      : '<div style="color:#888;padding:12px 0">Nenhum lançamento. Use o botão acima para registrar manualmente.</div>'}
+    </div>`;
+
+  c.querySelectorAll('.hist-item').forEach(el=>el.onclick=()=>{ Estado.histSel=+el.dataset.k; renderDetalhe(); });
+
+  c.querySelector('#h-novo').onclick=()=>{
+    const ag=new Date();
+    Local.addHistorico(id,{id:'h'+Date.now(),
+      data:prompt('Data (dd/mm/aaaa):',ag.toLocaleDateString('pt-BR'))||ag.toLocaleDateString('pt-BR'),
+      hora:prompt('Hora (hh:mm):',ag.toTimeString().slice(0,5))||'',
+      referente:prompt('Referente ao:','SEGURADO')||'',
+      descricao:prompt('Descrição:')||''});
+    Estado.histSel=0; renderDetalhe();
+  };
+  const ed=c.querySelector('#h-edit');
+  if(ed) ed.onclick=e=>{ e.preventDefault();
+    const arr=Local.historico(id), x=arr.find(y=>y.id===h.id);
+    x.data=prompt('Data:',x.data)??x.data; x.hora=prompt('Hora:',x.hora)??x.hora;
+    x.referente=prompt('Referente ao:',x.referente)??x.referente;
+    x.descricao=prompt('Descrição:',x.descricao)??x.descricao;
+    Local.setHistorico(id,arr); renderDetalhe(); };
+  const dl=c.querySelector('#h-del');
+  if(dl) dl.onclick=e=>{ e.preventDefault();
+    if(!confirm('Excluir este lançamento manual?')) return;
+    Local.setHistorico(id,Local.historico(id).filter(y=>y.id!==h.id)); Estado.histSel=0; renderDetalhe(); };
+
+  c.querySelector('#h-desc').onclick=async()=>{
+    const log=c.querySelector('#h-log'); log.style.display='block'; log.innerHTML='Testando...<br>';
+    const achou=await Hist.descobrir(Estado.sel,(u,m,ok)=>{
+      log.insertAdjacentHTML('beforeend',`<div style="color:${ok?'#0a6b2d':'#999'}">${ok?'✔':'·'} ${esc(u)} → ${esc(m)}</div>`); });
+    if(achou){ delete Estado.cacheHist[id]; await carregarHist(); renderDetalhe(); }
+    else log.insertAdjacentHTML('beforeend','<div style="color:#b00020">Nenhum endpoint respondeu com histórico.</div>');
   };
 }
 
-/* ---------- Jornada do cliente (etapas derivadas dos dados da API) ---------- */
-function buildJourney(c){
-  var steps=[
-    {key:"aviso",   title:"Aviso de sinistro",        date:c.datavi, meta:"Sinistro comunicado à seguradora"},
-    {key:"ocorr",   title:"Ocorrência registrada",    date:c.datoco, meta:"Data do evento"},
-    {key:"vistoria",title:"Vistoria",                 date:c.datvis, meta:c.oficina?("Oficina: "+c.oficina):"Vistoria do veículo"},
-    {key:"analise", title:"Análise / atendimento",    date:c.agendamento, meta:(c.responsavel?("Responsável: "+c.responsavel):"Em análise")},
-    {key:"liberacao",title:"Liberação",               date:c.datlib, meta:"Liberação do processo"},
-    {key:"encerr",  title:"Encerramento",             date:c.datenc, meta:mapSituacao(c.situacao).label}
-  ];
-  // marca estado de cada etapa
-  var lastDoneIdx=-1;
-  steps.forEach(function(s,i){ if(s.date) lastDoneIdx=i; });
-  steps.forEach(function(s,i){
-    if(s.date) s.state=(i<lastDoneIdx?"done":"done");
-    else s.state=(i===lastDoneIdx+1?"current":"pending");
-  });
-  // Se encerrado/indenizado, tudo concluído
-  var sit=mapSituacao(c.situacao).label;
-  if(sit==="Indenizado"||sit==="Encerrado"){ steps.forEach(function(s){s.state="done";}); }
-  return steps;
+/* ==================================================================
+   11. ANOTAÇÕES LIVRES
+   ================================================================== */
+function renderNotas(c){
+  const id=idSel();
+  c.innerHTML=`<div class="painel-form">
+    <div class="secao">Anotações livres <span style="font-weight:400;text-transform:none;color:#888;font-size:10px">salvo automaticamente</span></div>
+    <textarea id="nt" style="width:100%;min-height:280px;border:1px solid var(--borda);border-radius:3px;padding:10px;font-size:13px;line-height:1.6"
+      placeholder="Anotações internas sobre este sinistro...">${esc(Local.notas(id))}</textarea>
+    <div style="font-size:11px;color:#888;margin-top:6px" id="nt-st"></div></div>`;
+  let t;
+  const ta=c.querySelector('#nt');
+  ta.oninput=()=>{ clearTimeout(t); t=setTimeout(()=>{ Local.setNotas(id,ta.value);
+    c.querySelector('#nt-st').textContent='Salvo em '+new Date().toLocaleTimeString('pt-BR'); renderLista(); },600); };
 }
 
-/* =========================================================================
-   ESTADO DA APLICAÇÃO E ROTEAMENTO
-   ========================================================================= */
-var State={ route:"dashboard", param:null, claims:loadClaims(), session:{name:"Marina Costa",role:"Administrador"} };
-
-function navigate(route,param){ State.route=route; State.param=param||null; location.hash="#/"+route+(param?"/"+param:""); render(); }
-window.addEventListener("hashchange",function(){
-  var h=location.hash.replace(/^#\//,"").split("/");
-  if(h[0] && h[0]!==State.route || (h[1]||null)!==State.param){ State.route=h[0]||"dashboard"; State.param=h[1]||null; render(); }
+/* ==================================================================
+   12. BADGES E EVENTOS
+   ================================================================== */
+function atualizaBadges(){
+  const id=idSel(); if(!id) return;
+  const et=Local.etapas(id).filter(e=>e.status||e.responsavel||e.data||e.obs).length;
+  const be=$('#bd-etapas'); be.style.display=et?'inline-block':'none'; be.textContent=et;
+  const h=histCombinado().length;
+  const bh=$('#bd-hist'); bh.style.display=h?'inline-block':'none'; bh.textContent=h;
+}
+document.querySelectorAll('.aba').forEach(a=>a.onclick=()=>{
+  document.querySelectorAll('.aba').forEach(x=>x.classList.remove('on'));
+  a.classList.add('on'); Estado.aba=a.dataset.aba; if(Estado.sel) renderDetalhe();
 });
+$('#f-btn').onclick=()=>sincronizar(1);
+$('#pg-ant').onclick=()=>sincronizar(Math.max(1,Estado.pagina-1));
+$('#pg-prox').onclick=()=>sincronizar(Estado.pagina+1);
+$('#f-texto').oninput=filtrar;
+$('#f-reset').onclick=()=>{ $('#f-texto').value=''; $('#f-situacao').value='T'; $('#f-tipo').value='S'; filtrar(); };
 
-/* =========================================================================
-   SHELL (sidebar + topbar)
-   ========================================================================= */
-var MENU=[
-  ["dashboard","Dashboard","▣"],
-  ["sinistros","Sinistros","⚠"],
-  ["clientes","Clientes","☺"],
-  ["seguradoras","Seguradoras","⛨"],
-  ["oficinas","Oficinas/Prestadores","⚒"],
-  ["relatorios","Relatórios","▦"],
-  ["integracao","Integração CORP","⟳"],
-  ["config","Configurações","⚙"]
-];
-function shell(inner,crumb){
-  var nav=U.el("nav",{}, MENU.map(function(m){
-    return U.el("a",{class:(State.route===m[0]?"active":""),onclick:function(){navigate(m[0]);}},[
-      U.el("span",{text:m[2]}), U.el("span",{text:m[1]})
-    ]);
-  }));
-  var side=U.el("div",{class:"sidebar"},[
-    U.el("div",{class:"brand"},[U.el("span",{text:"◆"}),U.el("span",{text:"Sinistro360"})]),
-    nav,
-    U.el("div",{class:"ver",text:"v2.0 • Integração CORP"})
-  ]);
-  var initials=State.session.name.split(" ").map(function(w){return w[0];}).slice(0,2).join("");
-  var top=U.el("div",{class:"topbar"},[
-    U.el("div",{class:"crumb",text:"Sinistro360 › "+(crumb||"")}),
-    U.el("div",{class:"user"},[
-      U.el("div",{},[U.el("div",{text:State.session.name,style:"font-weight:600"}),U.el("div",{class:"muted",style:"font-size:11px",text:State.session.role})]),
-      U.el("div",{class:"avatar",text:initials})
-    ])
-  ]);
-  var main=U.el("div",{class:"main"},[top,U.el("div",{class:"content"},[inner])]);
-  return U.el("div",{class:"app"},[side,main]);
-}
-
-/* =========================================================================
-   PÁGINAS
-   ========================================================================= */
-var Pages={};
-
-/* ----- Dashboard ----- */
-Pages.dashboard=function(){
-  var cs=State.claims;
-  var byStatus={};
-  cs.forEach(function(c){ var l=mapSituacao(c.situacao).label; byStatus[l]=(byStatus[l]||0)+1; });
-  var totalInd=cs.reduce(function(a,c){return a+(c.valind||0);},0);
-  var cards=U.el("div",{class:"stat-cards"},[
-    stat(cs.length,"Sinistros sincronizados"),
-    stat(byStatus["Em andamento"]||0,"Em andamento"),
-    stat(byStatus["Indenizado"]||0,"Indenizados"),
-    stat(U.money(totalInd),"Total indenizado")
-  ]);
-  var recent=U.el("div",{class:"card"},[
-    U.el("h3",{text:"Últimos sinistros",style:"margin-top:0"}),
-    cs.length?claimsTable(cs.slice(0,8)):emptyState("Nenhum sinistro sincronizado ainda.")
-  ]);
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Dashboard"}),U.el("p",{text:"Visão geral dos sinistros importados da API CORP"})])]),
-    cards, recent
-  ]),"Dashboard");
-};
-function stat(n,l){ return U.el("div",{class:"stat"},[U.el("div",{class:"n",text:String(n)}),U.el("div",{class:"l",text:l})]); }
-function emptyState(msg){ return U.el("div",{class:"muted",style:"padding:30px;text-align:center",text:msg}); }
-
-/* ----- Lista de Sinistros ----- */
-var listFilter={status:"todos",q:""};
-Pages.sinistros=function(){
-  var chips=[["todos","Todos"],["Aberto","Abertos"],["Em andamento","Em andamento"],["Pendente","Pendentes"],["Indenizado","Indenizados"],["Encerrado","Encerrados"],["Negado","Negados"]];
-  var chipRow=U.el("div",{class:"chips"},chips.map(function(c){
-    return U.el("div",{class:"chip-btn"+(listFilter.status===c[0]?" active":""),text:c[1],onclick:function(){listFilter.status=c[0];render();}});
-  }));
-  var search=U.el("input",{placeholder:"Buscar por segurado, placa, nº sinistro, apólice...",value:listFilter.q,oninput:function(e){listFilter.q=e.target.value;renderList();}});
-  var toolbar=U.el("div",{class:"toolbar"},[search,
-    U.el("button",{class:"btn sec sm",text:"Exportar CSV",onclick:exportCSV}),
-    U.el("button",{class:"btn ghost sm",text:"↻ Sincronizar agora",onclick:function(){navigate("integracao");}})
-  ]);
-  var listWrap=U.el("div",{id:"listWrap"});
-  function renderList(){
-    var q=listFilter.q.toLowerCase();
-    var rows=State.claims.filter(function(c){
-      if(listFilter.status!=="todos" && mapSituacao(c.situacao).label!==listFilter.status) return false;
-      if(!q) return true;
-      return [c.segurado,c.placa,c.numsin,c.numapo,c.cia].join(" ").toLowerCase().indexOf(q)>=0;
-    });
-    listWrap.innerHTML="";
-    listWrap.appendChild(rows.length?claimsTable(rows):emptyState("Nenhum sinistro encontrado com esses filtros."));
-  }
-  setTimeout(renderList,0);
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[
-      U.el("div",{},[U.el("h1",{text:"Sinistros"}),U.el("p",{text:"Todos os sinistros trazidos da API CORP ("+State.claims.length+" registros)"})]),
-      U.el("button",{class:"btn",text:"↻ Sincronizar",onclick:function(){navigate("integracao");}})
-    ]),
-    U.el("div",{class:"card"},[chipRow,toolbar,listWrap])
-  ]),"Sinistros");
-};
-function claimsTable(rows){
-  var head=U.el("tr",{},["Nº Sinistro","Segurado","Placa","Seguradora","Ramo","Situação","Ocorrência","Indenização","Ações"].map(function(h){return U.el("th",{text:h});}));
-  var body=rows.map(function(c){
-    var sit=mapSituacao(c.situacao);
-    return U.el("tr",{},[
-      U.el("td",{class:"mono"},[U.el("a",{text:c.numsin||("#"+c.nosnum),onclick:function(){navigate("sinistro",c.id);}})]),
-      U.el("td",{text:U.txt(c.segurado)}),
-      U.el("td",{class:"mono",text:U.txt(c.placa)}),
-      U.el("td",{text:U.txt(c.cia)}),
-      U.el("td",{text:U.txt(c.ramo)}),
-      U.el("td",{},[U.el("span",{class:"badge "+sit.cls,text:sit.label})]),
-      U.el("td",{text:U.fmtDateBR(c.datoco)}),
-      U.el("td",{class:"mono right",text:c.valind?U.money(c.valind):"—"}),
-      U.el("td",{},[U.el("button",{class:"btn sec sm",text:"Abrir",onclick:function(){navigate("sinistro",c.id);}})])
-    ]);
-  });
-  return U.el("div",{style:"overflow:auto"},[U.el("table",{},[U.el("thead",{},[head]),U.el("tbody",{},body)])]);
-}
-
-/* ----- Detalhe do sinistro (com Jornada) ----- */
-var detailTab="jornada";
-Pages.sinistro=function(){
-  var c=State.claims.find(function(x){return x.id===State.param;});
-  if(!c) return shell(U.el("div",{},[emptyState("Sinistro não encontrado."),U.el("button",{class:"btn sec",text:"← Voltar",onclick:function(){navigate("sinistros");}})]),"Sinistros");
-  var sit=mapSituacao(c.situacao);
-  var head=U.el("div",{class:"detail-head"},[
-    U.el("button",{class:"btn sec sm",text:"← Voltar aos sinistros",onclick:function(){navigate("sinistros");},style:"margin-bottom:12px"}),
-    U.el("h1",{text:(c.numsin?("Sinistro "+c.numsin):("Registro #"+c.nosnum))+" — "+U.txt(c.segurado)}),
-    U.el("div",{class:"sub",text:"Placa "+U.txt(c.placa)+" • "+U.txt(c.cia)+" • Ramo "+U.txt(c.ramo)+" • Filial "+U.txt(c.codfil)}),
-    U.el("div",{class:"detail-badges"},[
-      U.el("span",{class:"badge "+sit.cls,text:sit.label}),
-      U.el("span",{class:"badge blue",text:U.txt(c.tipo)}),
-      c.responsavel?U.el("span",{class:"badge purple",text:"Resp.: "+c.responsavel}):null
-    ])
-  ]);
-  var tabs=[["jornada","Jornada do cliente"],["geral","Visão geral"],["financeiro","Financeiro"],["atendimento","Atendimento"],["raw","Dados brutos (API)"]];
-  var tabRow=U.el("div",{class:"tabs"},tabs.map(function(t){
-    return U.el("div",{class:"tab"+(detailTab===t[0]?" active":""),text:t[1],onclick:function(){detailTab=t[0];render();}});
-  }));
-  var panel=U.el("div",{id:"panel"});
-  setTimeout(function(){ panel.innerHTML=""; panel.appendChild(detailPanel(c)); },0);
-  return shell(U.el("div",{},[head,tabRow,panel]),"Sinistros / Detalhe");
-};
-function detailPanel(c){
-  if(detailTab==="jornada") return journeyPanel(c);
-  if(detailTab==="geral") return kvCard("Informações gerais",[
-    ["Nº do sinistro",U.txt(c.numsin)],["Tipo",U.txt(c.tipo)],["Segurado",U.txt(c.segurado)],
-    ["Placa",U.txt(c.placa)],["Seguradora",U.txt(c.cia)],["Ramo",U.txt(c.ramo)],
-    ["Apólice",U.val(c.numapo)],["Endosso",U.val(c.numend)],["Item",U.txt(c.item)],
-    ["Filial",U.txt(c.codfil)],["Código interno",U.txt(c.codigo)],["Nº controle (nosnum)",U.txt(c.nosnum)],
-    ["Situação",mapSituacao(c.situacao).label]
-  ]);
-  if(detailTab==="financeiro") return kvCard("Valores",[
-    ["Valor avaliado",U.money(c.valavi)],["Valor indenizado",U.money(c.valind)],
-    ["Valor descontado",U.money(c.valdes)],["Franquia",U.money(c.franquia)],
-    ["Data de liberação",U.fmtDateBR(c.datlib)]
-  ]);
-  if(detailTab==="atendimento") return U.el("div",{},[
-    kvCard("Atendimento",[
-      ["Responsável",U.txt(c.responsavel)],["Oficina/Prestador",U.txt(c.oficina)],
-      ["Tipo de atendimento",U.txt(c.tipo_atendimento)],
-      ["Próxima agenda",U.fmtDateBR(c.proxima_agenda)],["Agendamento",U.fmtDateBR(c.agendamento)],
-      ["Data vistoria",U.fmtDateBR(c.datvis)]
-    ]),
-    U.el("div",{class:"card"},[
-      U.el("h3",{text:"Descrição",style:"margin-top:0"}),
-      U.el("p",{class:"muted",text:U.txt(c.descricao)})
-    ]),
-    U.el("div",{class:"card"},[
-      U.el("h3",{text:"Observações",style:"margin-top:0"}),
-      U.el("pre",{style:"white-space:pre-wrap;font-family:inherit;margin:0",text:U.txt(c.observacoes)})
-    ])
-  ]);
-  if(detailTab==="raw") return U.el("div",{class:"card"},[
-    U.el("h3",{text:"Resposta bruta da API",style:"margin-top:0"}),
-    U.el("pre",{style:"white-space:pre-wrap;font-size:12px;background:#0f172a;color:#a5f3fc;padding:14px;border-radius:8px;overflow:auto",text:JSON.stringify(c._raw,null,2)})
-  ]);
-}
-function kvCard(title,pairs){
-  var dl=U.el("dl",{class:"kv"});
-  pairs.forEach(function(p){ dl.appendChild(U.el("dt",{text:p[0]})); dl.appendChild(U.el("dd",{text:p[1]})); });
-  return U.el("div",{class:"card"},[U.el("h3",{text:title,style:"margin-top:0"}),dl]);
-}
-function journeyPanel(c){
-  var steps=buildJourney(c);
-  var journey=U.el("div",{class:"journey"},steps.map(function(s){
-    return U.el("div",{class:"jstep"},[
-      U.el("div",{class:"jdot "+s.state,text:s.state==="done"?"✓":(s.state==="current"?"●":"")}),
-      U.el("div",{class:"jbody"},[
-        U.el("h4",{text:s.title}),
-        U.el("div",{class:"jmeta",text:s.meta}),
-        U.el("div",{class:(s.date?"jdate":"jmeta"),text:s.date?("📅 "+U.fmtDateBR(s.date)):"Pendente"})
-      ])
-    ]);
-  }));
-  return U.el("div",{class:"card"},[
-    U.el("h3",{text:"Jornada do cliente",style:"margin-top:0"}),
-    U.el("p",{class:"muted",text:"Linha do tempo do sinistro montada a partir das datas retornadas pela API."}),
-    journey
-  ]);
-}
-
-/* ----- Clientes / Seguradoras / Oficinas (derivados dos sinistros) ----- */
-Pages.clientes=function(){
-  var map={};
-  State.claims.forEach(function(c){ if(c.segurado){ (map[c.segurado]=map[c.segurado]||[]).push(c); } });
-  var names=Object.keys(map).sort();
-  var rows=names.map(function(n){
-    return U.el("tr",{},[U.el("td",{text:n}),U.el("td",{text:map[n].length+" sinistro(s)"}),
-      U.el("td",{text:map[n].map(function(c){return c.placa;}).filter(Boolean).join(", ")||"—"})]);
-  });
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Clientes"}),U.el("p",{text:names.length+" segurados identificados nos sinistros"})])]),
-    U.el("div",{class:"card"},[names.length?U.el("table",{},[U.el("thead",{},[U.el("tr",{},["Segurado","Sinistros","Placas"].map(function(h){return U.el("th",{text:h});}))]),U.el("tbody",{},rows)]):emptyState("Sincronize os sinistros para popular os clientes.")])
-  ]),"Clientes");
-};
-Pages.seguradoras=function(){ return aggPage("cia","Seguradoras"); };
-Pages.oficinas=function(){ return aggPage("oficina","Oficinas/Prestadores"); };
-function aggPage(field,title){
-  var map={};
-  State.claims.forEach(function(c){ var v=c[field]; if(v){ map[v]=(map[v]||0)+1; } });
-  var keys=Object.keys(map).sort();
-  var rows=keys.map(function(k){return U.el("tr",{},[U.el("td",{text:k}),U.el("td",{text:map[k]+" sinistro(s)"})]);});
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:title}),U.el("p",{text:keys.length+" registros derivados dos sinistros"})])]),
-    U.el("div",{class:"card"},[keys.length?U.el("table",{},[U.el("thead",{},[U.el("tr",{},[U.el("th",{text:title}),U.el("th",{text:"Qtd."})])]),U.el("tbody",{},rows)]):emptyState("Sem dados. Sincronize os sinistros.")])
-  ]),title);
-}
-
-/* ----- Relatórios ----- */
-Pages.relatorios=function(){
-  var cs=State.claims;
-  var porSit={},porCia={};
-  cs.forEach(function(c){ var s=mapSituacao(c.situacao).label; porSit[s]=(porSit[s]||0)+1; if(c.cia)porCia[c.cia]=(porCia[c.cia]||0)+1; });
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Relatórios"}),U.el("p",{text:"Resumos gerados a partir dos dados da API"})])]),
-    U.el("div",{class:"grid c2"},[
-      U.el("div",{class:"card"},[U.el("h3",{text:"Por situação",style:"margin-top:0"}),miniTable(porSit)]),
-      U.el("div",{class:"card"},[U.el("h3",{text:"Por seguradora",style:"margin-top:0"}),miniTable(porCia)])
-    ])
-  ]),"Relatórios");
-};
-function miniTable(obj){
-  var keys=Object.keys(obj); if(!keys.length) return emptyState("Sem dados.");
-  return U.el("table",{},[U.el("tbody",{},keys.map(function(k){return U.el("tr",{},[U.el("td",{text:k}),U.el("td",{class:"right mono",text:String(obj[k])})]);}))]);
-}
-
-/* ----- Integração CORP ----- */
-Pages.integracao=function(){
-  var cfg=getCfg();
-  var st=U.el("div",{id:"syncStatus"});
-  function f(label,key,type,ph){ return U.el("div",{class:"field"},[U.el("label",{text:label}),U.el("input",{id:"cfg_"+key,type:type||"text",value:cfg[key]||"",placeholder:ph||""})]); }
-  function collect(){ return {url:val("url"),email:val("email"),senha:val("senha"),aplicacao:val("aplicacao")||"0"}; }
-  function val(k){ var e=document.getElementById("cfg_"+k); return e?e.value.trim():""; }
-  function setStatus(cls,msg){ st.innerHTML=""; st.appendChild(U.el("div",{class:"status "+cls,html:msg})); }
-  var card=U.el("div",{class:"card"},[
-    U.el("h3",{text:"Conexão com a API CORP",style:"margin-top:0"}),
-    U.el("div",{class:"grid c2"},[f("URL base da API","url","text","https://api.corpnuvem.com"),f("Aplicação","aplicacao","number","0")]),
-    U.el("div",{class:"grid c2"},[f("E-mail / Login","email","text","usuario@empresa.com"),f("Senha","senha","password","••••••")]),
-    U.el("div",{style:"display:flex;gap:10px;flex-wrap:wrap;margin-top:6px"},[
-      U.el("button",{class:"btn sec",text:"Salvar",onclick:function(){setCfg(collect());setStatus("ok","Configuração salva.");}}),
-      U.el("button",{class:"btn ghost",text:"Testar conexão",onclick:function(){
-        setCfg(collect()); setStatus("info","Testando conexão... <span class='spin'></span>");
-        CorpAPI.testConnection().then(function(){setStatus("ok","✔ Conexão OK! Login autenticado com sucesso.");})
-          .catch(function(e){setStatus("err","�‑ Falha: "+e.message);});
-      }}),
-      U.el("button",{class:"btn",id:"btnSync",text:"↻ Sincronizar todos os sinistros",onclick:function(){
-        setCfg(collect());
-        var b=document.getElementById("btnSync"); b.disabled=true; b.innerHTML="Sincronizando... <span class='spin'></span>";
-        setStatus("info","Buscando sinistros na API CORP... <span class='spin'></span>");
-        syncAll().then(function(res){
-          setStatus("ok","✔ Concluído! "+res.total+" sinistros sincronizados ("+res.novos+" novos, "+res.atualizados+" atualizados).");
-          b.disabled=false; b.innerHTML="↻ Sincronizar todos os sinistros";
-        }).catch(function(e){
-          setStatus("err","✗ Erro na sincronização: "+e.message+(e.status?(" (HTTP "+e.status+")"):""));
-          b.disabled=false; b.innerHTML="↻ Sincronizar todos os sinistros";
-        });
-      }})
-    ]),
-    st
-  ]);
-  var info=U.el("div",{class:"card"},[
-    U.el("h3",{text:"Sobre a sincronização",style:"margin-top:0"}),
-    U.el("p",{class:"muted",text:"A sincronização busca todos os sinistros dos últimos 5 anos, percorrendo todas as páginas. Cada registro é mapeado com todos os campos que a API retorna: segurado, placa, seguradora, ramo, apólice, valores (avaliado, indenizado, franquia), datas (aviso, ocorrência, vistoria, liberação, encerramento), responsável, oficina, descrição e observações."}),
-    U.el("p",{class:"muted",text:"Total atual armazenado: "+State.claims.length+" sinistros."}),
-    State.claims.length?U.el("button",{class:"btn sec sm",text:"Limpar dados locais",onclick:function(){if(confirm("Apagar todos os sinistros armazenados localmente?")){State.claims=[];saveClaims([]);render();}}}):null
-  ]);
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Integração CORP"}),U.el("p",{text:"Conecte-se à API e sincronize todos os sinistros"})])]),
-    card, info
-  ]),"Integração CORP");
-};
-
-/* ----- Configurações ----- */
-Pages.config=function(){
-  return shell(U.el("div",{},[
-    U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Configurações"}),U.el("p",{text:"Preferências do sistema"})])]),
-    U.el("div",{class:"card"},[
-      U.el("h3",{text:"Dados armazenados",style:"margin-top:0"}),
-      U.el("p",{class:"muted",text:"Sinistros: "+State.claims.length+" • Token: "+(getToken()?"ativo":"inativo")}),
-      U.el("button",{class:"btn danger sm",text:"Sair (logout)",onclick:function(){setToken("");alert("Sessão encerrada.");render();}})
-    ]),
-    U.el("div",{class:"card"},[U.el("h3",{text:"Ir para integração",style:"margin-top:0"}),
-      U.el("button",{class:"btn",text:"Abrir Integração CORP",onclick:function(){navigate("integracao");}})]
-    )
-  ]),"Configurações");
-};
-
-/* =========================================================================
-   SINCRONIZAÇÃO (percorre todas as páginas)
-   ========================================================================= */
-function syncAll(){
-  var novos=0,atualizados=0,total=0;
-  var byId={}; State.claims.forEach(function(c){byId[c.id]=c;});
-  function pagina(p){
-    return CorpAPI.fetchSinistros({pagina:p}).then(function(resp){
-      var arr=Array.isArray(resp)?resp:((resp&&(resp.sinistros||resp.sinistro||resp.dados||resp.data||resp.itens||resp.registros))||[]);
-      arr.forEach(function(raw){
-        var m=mapCorp(raw);
-        if(byId[m.id]){ atualizados++; } else { novos++; }
-        byId[m.id]=m;
-      });
-      total+=arr.length;
-      if(arr.length>=100 && p<100){ return pagina(p+1); }
-      // finaliza
-      State.claims=Object.keys(byId).map(function(k){return byId[k];});
-      saveClaims(State.claims);
-      return {total:State.claims.length,novos:novos,atualizados:atualizados};
-    });
-  }
-  return pagina(1);
-}
-
-/* ----- Exportar CSV ----- */
-function exportCSV(){
-  var cols=["numsin","segurado","placa","cia","ramo","situacao","numapo","datoco","datavi","datenc","valavi","valind","franquia","responsavel","oficina"];
-  var head=cols.join(";");
-  var lines=State.claims.map(function(c){return cols.map(function(k){var v=c[k];if(/^dat|^data/.test(k))v=U.fmtDateBR(v);return '"'+String(v==null?"":v).replace(/"/g,'""')+'"';}).join(";");});
-  var csv=head+"\n"+lines.join("\n");
-  var blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
-  var a=U.el("a",{href:URL.createObjectURL(blob),download:"sinistros_corp.csv"}); document.body.appendChild(a); a.click(); a.remove();
-}
-
-/* =========================================================================
-   RENDER
-   ========================================================================= */
-function render(){
-  var root=document.getElementById("root");
-  root.innerHTML="";
-  var page=Pages[State.route]||Pages.dashboard;
-  root.appendChild(page());
-}
-/* inicialização a partir do hash */
-(function(){
-  var h=location.hash.replace(/^#\//,"").split("/");
-  if(h[0]){ State.route=h[0]; State.param=h[1]||null; }
-  render();
-})();
+if(Api.restaurar()) abrirApp();
 </script>
 </body>
 </html>

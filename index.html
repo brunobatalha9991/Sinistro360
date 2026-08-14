@@ -544,7 +544,7 @@ tr:hover td{background:var(--surface-2)}
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, doc, setDoc, onSnapshot, serverTimestamp
+    getFirestore, doc, setDoc, onSnapshot, serverTimestamp, collection, writeBatch
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -561,7 +561,7 @@ tr:hover td{background:var(--surface-2)}
 
   // Expõe o mínimo necessário para o script principal (não-module) usar.
   window.__fb = {
-    db, doc, setDoc, onSnapshot, serverTimestamp,
+    db, doc, setDoc, onSnapshot, serverTimestamp, collection, writeBatch,
     ready: true
   };
   // Avisa o script principal que o Firebase está pronto.
@@ -3247,93 +3247,200 @@ setInterval(function(){
 (function(){var h=location.hash.replace(/^#\//,"").split("/");if(h[0]){State.route=h[0];State.param=h[1]||null;}render();})();
 </script>
 
-<!-- ===== Camada de sincronização Firestore <-> localStorage ===== -->
+<!-- ===== Camada de sincronização Firestore <-> localStorage (por registro) =====
+     v2: em vez de guardar cada chave inteira como 1 documento (limite de 1 MiB
+     do Firestore e "tudo ou nada" no envio), os dados grandes/multiusuário
+     (sinistros, overrides, usuários, tarefas, notificações, demandas) viram
+     UM DOCUMENTO POR REGISTRO em coleções próprias. Configurações pequenas
+     (conexão CORP, tipos de tarefa, templates de jornada, opções de situação/
+     temperatura, endpoints de formulário) continuam como 1 documento só,
+     porque são pequenas e não crescem sem limite. ================================ -->
 <script>
 (function(){
-  // Chaves COMPARTILHADAS entre a equipe (vão para o Firestore).
-  // Preferências locais (tema, sidebar, colunas e sessão) NÃO entram aqui de propósito.
-  var SHARED_KEYS = [
-    "corp_claims",          // sinistros da API
-    "corp_overrides",       // jornada, financeiro, vínculos, auditoria, próxima ação, etc.
-    "corp_users",           // usuários do sistema (login compartilhado)
-    "corp_tasks",           // comunicação interna
-    "corp_notifs",          // notificações
-    "corp_task_types",      // tipos de tarefa
-    "corp_demandas",        // demandas dos formulários
-    "corp_form_endpoints",  // configuração dos formulários
-    "corp_journey_templates", // modelos de jornada por ramo
-    "corp_sit_options",     // situações de atendimento
-    "corp_temp_options",    // temperaturas
-    "corp_cfg"              // configuração de conexão da API CORP
-  ];
-
-  var COLLECTION = "sinistros360_state";
-  var applyingRemote = {}; // trava anti-eco por chave
-  var pendingBeforeReady = false;
-
   function fb(){ return window.__fb; }
 
-  // ---- Envia uma chave do localStorage para o Firestore ----
-  function pushKey(key){
-    var F = fb(); if(!F || !F.ready) { pendingBeforeReady = true; return; }
-    if(applyingRemote[key]) return; // não reenvia o que acabou de chegar do servidor
+  /* ---------- 1) Config pequena: 1 doc inteiro por chave (como na v1) ---------- */
+  var CONFIG_KEYS = ["corp_cfg","corp_task_types","corp_form_endpoints","corp_journey_templates","corp_sit_options","corp_temp_options"];
+  var CONFIG_COLLECTION = "s360_config";
+  var applyingRemoteConfig = {};
+  var configInitialLoad = true;
+  var configFirstSnapSeen = {};
+
+  function pushConfigKey(key){
+    var F = fb(); if(!F || !F.ready) return;
+    if(configInitialLoad) return;
+    if(applyingRemoteConfig[key]) return;
     var raw = localStorage.getItem(key);
-    var payload = { json: (raw==null ? null : raw), updatedAt: F.serverTimestamp() };
-    F.setDoc(F.doc(F.db, COLLECTION, key), payload)
-     .catch(function(e){ console.warn("[sync] falha ao enviar", key, e && e.message); });
+    F.setDoc(F.doc(F.db, CONFIG_COLLECTION, key), { json:(raw==null?null:raw), updatedAt:F.serverTimestamp() })
+     .catch(function(e){ console.warn("[sync-config] falha ao enviar", key, e && e.message); });
+  }
+  function checkConfigInitialDone(){
+    if(!configInitialLoad) return;
+    for(var i=0;i<CONFIG_KEYS.length;i++){ if(!configFirstSnapSeen[CONFIG_KEYS[i]]) return; }
+    configInitialLoad = false;
+    console.log("[sync-config] carga inicial concluída");
+  }
+  function startConfigListeners(){
+    var F = fb(); if(!F || !F.ready) return;
+    CONFIG_KEYS.forEach(function(key){
+      F.onSnapshot(F.doc(F.db, CONFIG_COLLECTION, key), function(snap){
+        var existed = snap.exists();
+        configFirstSnapSeen[key] = true;
+        if(existed){
+          var data = snap.data() || {};
+          var remoteRaw = data.json, localRaw = localStorage.getItem(key);
+          if(remoteRaw !== localRaw){
+            applyingRemoteConfig[key] = true;
+            try{ if(remoteRaw==null) _removeItem.call(localStorage,key); else _setItem.call(localStorage,key,remoteRaw); }
+            finally{ applyingRemoteConfig[key] = false; }
+            reloadInMemory(); safeRender();
+          }
+        }
+        checkConfigInitialDone();
+        if(!configInitialLoad && !existed && localStorage.getItem(key) != null){ pushConfigKey(key); }
+      }, function(err){ configFirstSnapSeen[key]=true; checkConfigInitialDone(); console.warn("[sync-config] erro", key, err && err.message); });
+    });
+    setTimeout(function(){
+      if(configInitialLoad){
+        configInitialLoad = false;
+        CONFIG_KEYS.forEach(function(key){ if(!configFirstSnapSeen[key] && localStorage.getItem(key)!=null){ pushConfigKey(key); } });
+      }
+    }, 8000);
   }
 
-  // ---- Intercepta localStorage.setItem: toda gravação numa chave compartilhada
-  //      é espelhada no Firestore automaticamente. Isso cobre TODAS as funções
-  //      saveClaims/saveOvr/saveUsers/... sem precisar alterar cada uma. ----
+  /* ---------- 2) Registros grandes/multiusuário: 1 doc por item ---------- */
+  // keyed=true  -> valor local é um OBJETO {id: registro}  (é o caso de corp_overrides)
+  // keyed=false -> valor local é um ARRAY [{id,...}, ...]  (claims, users, tasks, notifs, demandas)
+  var RECORD_SPECS = {
+    corp_claims:    { col:"s360_claims",    keyed:false },
+    corp_users:     { col:"s360_users",     keyed:false },
+    corp_tasks:     { col:"s360_tasks",     keyed:false },
+    corp_notifs:    { col:"s360_notifs",    keyed:false },
+    corp_demandas:  { col:"s360_demandas",  keyed:false },
+    corp_overrides: { col:"s360_overrides", keyed:true  }
+  };
+  var remoteCache = {};              // remoteCache[key] = { recordId: jsonStringDoRegistro }
+  var applyingRemoteRecord = {};
+  var recordsInitialLoad = {};
+  Object.keys(RECORD_SPECS).forEach(function(k){ remoteCache[k]={}; recordsInitialLoad[k]=true; });
+
+  function localToMap(key, spec){
+    var raw; try{ raw = JSON.parse(localStorage.getItem(key)); }catch(e){ raw=null; }
+    var map = {};
+    if(spec.keyed){ raw = raw||{}; Object.keys(raw).forEach(function(id){ map[id]=raw[id]; }); }
+    else{ raw = raw||[]; raw.forEach(function(o){ if(o && o.id!=null) map[o.id]=o; }); }
+    return map;
+  }
+  function mapToLocalValue(spec, map){
+    if(spec.keyed) return map;
+    return Object.keys(map).map(function(id){ return map[id]; });
+  }
+
+  // Compara o array/objeto local contra o que já sabemos que está no Firestore
+  // (remoteCache) e envia só o que mudou/foi removido — nunca o conjunto inteiro.
+  function pushRecordKey(key){
+    var F = fb(); if(!F || !F.ready) return;
+    var spec = RECORD_SPECS[key];
+    if(recordsInitialLoad[key]) return;     // ainda não terminamos de ler o que já existe no servidor
+    if(applyingRemoteRecord[key]) return;   // essa gravação local veio do próprio Firestore, ignora
+
+    var localMap = localToMap(key, spec);
+    var remoteMap = remoteCache[key];
+    var ops = [];
+    Object.keys(localMap).forEach(function(id){
+      var json = JSON.stringify(localMap[id]);
+      if(remoteMap[id] !== json){ ops.push({type:"set", id:id, json:json}); }
+    });
+    Object.keys(remoteMap).forEach(function(id){
+      if(!(id in localMap)){ ops.push({type:"delete", id:id}); }
+    });
+    if(!ops.length) return;
+
+    var CHUNK = 400; // limite do Firestore é 500 operações por lote
+    function commitChunk(i){
+      if(i>=ops.length) return;
+      var slice = ops.slice(i, i+CHUNK);
+      var batch = F.writeBatch(F.db);
+      slice.forEach(function(op){
+        var ref = F.doc(F.db, spec.col, String(op.id));
+        if(op.type==="delete") batch.delete(ref);
+        else batch.set(ref, { json:op.json, updatedAt:F.serverTimestamp() });
+      });
+      batch.commit().then(function(){
+        slice.forEach(function(op){
+          if(op.type==="delete") delete remoteMap[op.id]; else remoteMap[op.id]=op.json;
+        });
+        commitChunk(i+CHUNK);
+      }).catch(function(e){ console.warn("[sync-records] falha ao enviar lote de", key, e && e.message); });
+    }
+    commitChunk(0);
+  }
+
   var _setItem = Storage.prototype.setItem;
   Storage.prototype.setItem = function(key, value){
     _setItem.apply(this, arguments);
-    if(SHARED_KEYS.indexOf(key) >= 0){ pushKey(key); }
+    if(CONFIG_KEYS.indexOf(key) >= 0){ pushConfigKey(key); }
+    if(RECORD_SPECS[key]){ pushRecordKey(key); }
   };
   var _removeItem = Storage.prototype.removeItem;
   Storage.prototype.removeItem = function(key){
     _removeItem.apply(this, arguments);
-    if(SHARED_KEYS.indexOf(key) >= 0){ pushKey(key); }
+    if(CONFIG_KEYS.indexOf(key) >= 0){ pushConfigKey(key); }
+    if(RECORD_SPECS[key]){ pushRecordKey(key); }
   };
 
-  // ---- Escuta o Firestore em tempo real e aplica no localStorage local ----
-  function startListeners(){
+  function reloadInMemory(){
+    try{
+      if(typeof State !== "undefined" && typeof loadClaims === "function"){ State.claims = loadClaims(); }
+    }catch(e){
+      try{ if(window.State && typeof loadClaims==="function"){ window.State.claims = loadClaims(); } }catch(e2){}
+    }
+  }
+  function safeRender(){
+    try{ if(typeof render === "function"){ render(); return; } }catch(e){}
+    try{ if(typeof window.render === "function"){ window.render(); } }catch(e2){}
+  }
+
+  function finishRecordInitialLoad(key){
+    if(!recordsInitialLoad[key]) return;
+    recordsInitialLoad[key] = false;
+    console.log("[sync-records] carga inicial concluída:", key);
+    // publica o que só existe local (ex.: usuário admin semeado antes do Firebase ficar pronto)
+    pushRecordKey(key);
+  }
+
+  function startRecordListeners(){
     var F = fb(); if(!F || !F.ready) return;
-    SHARED_KEYS.forEach(function(key){
-      F.onSnapshot(F.doc(F.db, COLLECTION, key), function(snap){
-        if(!snap.exists()) return;
-        var data = snap.data() || {};
-        var remoteRaw = data.json;               // string JSON ou null
-        var localRaw  = localStorage.getItem(key);
-        if(remoteRaw === localRaw) return;       // nada mudou
-
-        applyingRemote[key] = true;              // evita re-enviar de volta
-        try{
-          if(remoteRaw == null) _removeItem.call(localStorage, key);
-          else                  _setItem.call(localStorage, key, remoteRaw);
-        } finally {
-          applyingRemote[key] = false;
-        }
-
-        // Recarrega os dados na memória do app e redesenha, se possível.
-        try{ if(typeof loadClaims==="function"){ window.State && (State.claims = loadClaims()); } }catch(e){}
-        try{ if(typeof render==="function"){ render(); } }catch(e){}
-      }, function(err){
-        console.warn("[sync] erro no listener", key, err && err.message);
-      });
-    });
-
-    // Primeiro envio: sobe o que já existe localmente (seed inicial).
-    // Só faz sentido para quem tem dados e o servidor ainda está vazio;
-    // como o setDoc é "merge por último", isso é seguro para começar.
-    SHARED_KEYS.forEach(function(key){
-      if(localStorage.getItem(key) != null){ pushKey(key); }
+    Object.keys(RECORD_SPECS).forEach(function(key){
+      var spec = RECORD_SPECS[key];
+      var pendingFlush = false;
+      F.onSnapshot(F.collection(F.db, spec.col), function(qs){
+        qs.docChanges().forEach(function(ch){
+          if(ch.type === "removed"){ delete remoteCache[key][ch.doc.id]; }
+          else{ var data = ch.doc.data() || {}; remoteCache[key][ch.doc.id] = data.json; }
+        });
+        if(pendingFlush) return;
+        pendingFlush = true;
+        setTimeout(function(){
+          pendingFlush = false;
+          var merged = {};
+          Object.keys(remoteCache[key]).forEach(function(id){
+            try{ merged[id] = JSON.parse(remoteCache[key][id]); }catch(e){}
+          });
+          var newRaw = JSON.stringify(mapToLocalValue(spec, merged));
+          if(newRaw !== localStorage.getItem(key)){
+            applyingRemoteRecord[key] = true;
+            try{ _setItem.call(localStorage, key, newRaw); } finally { applyingRemoteRecord[key] = false; }
+            reloadInMemory(); safeRender();
+          }
+          finishRecordInitialLoad(key);
+        }, 0);
+      }, function(err){ console.warn("[sync-records] erro no listener", key, err && err.message); finishRecordInitialLoad(key); });
     });
   }
 
-  if(window.__fb && window.__fb.ready){ startListeners(); }
-  else { window.addEventListener("firebase-ready", startListeners); }
+  if(window.__fb && window.__fb.ready){ startConfigListeners(); startRecordListeners(); }
+  else { window.addEventListener("firebase-ready", function(){ startConfigListeners(); startRecordListeners(); }); }
 })();
 </script>
 

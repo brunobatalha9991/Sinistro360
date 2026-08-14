@@ -151,6 +151,21 @@ h1,h2,h3,h4{font-family:var(--font-display);letter-spacing:-.01em;color:var(--in
 .notif-count{position:absolute;top:0;right:0;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--card)}
 @keyframes neonBlink{0%,100%{box-shadow:0 0 0 1px rgba(var(--danger-rgb),.5),0 0 6px rgba(var(--danger-rgb),.6),0 0 12px rgba(var(--danger-rgb),.5);opacity:1}50%{box-shadow:0 0 0 2px rgba(var(--danger-rgb),.9),0 0 16px rgba(var(--danger-rgb),1),0 0 30px rgba(var(--danger-rgb),.9);opacity:.75}}
 .notif-btn.has-unread{animation:neonBlink 1.1s ease-in-out infinite;border-radius:8px}
+/* ===== Alertas visuais: Atendimento, Situação, Responsável, Próxima ação, Último histórico =====
+   .neon-alert é genérica: a cor do brilho vem da variável --neon-rgb definida inline
+   em cada elemento (ex.: style="--neon-rgb:var(--danger-rgb)"). */
+@keyframes neonPulse{
+  0%,100%{box-shadow:0 0 0 1px rgba(var(--neon-rgb),.55),0 0 8px rgba(var(--neon-rgb),.6),0 0 16px rgba(var(--neon-rgb),.5)}
+  50%{box-shadow:0 0 0 2px rgba(var(--neon-rgb),.95),0 0 20px rgba(var(--neon-rgb),1),0 0 38px rgba(var(--neon-rgb),.9)}
+}
+.neon-alert{animation:neonPulse 1.15s ease-in-out infinite;border-color:rgba(var(--neon-rgb),.7)!important}
+.badge.chip-live{font-weight:700;letter-spacing:.2px;border:none!important;color:#fff}
+.badge.chip-live.red{background:linear-gradient(135deg,var(--danger),#ff8a8a)}
+.badge.chip-live.amber{background:linear-gradient(135deg,var(--warn),#ffd166);color:#3a2400}
+.badge.chip-live.green{background:linear-gradient(135deg,var(--ok),#5cf0b8);color:#04231a}
+.badge.chip-live.gray{background:linear-gradient(135deg,#8b93a7,#aab2c5)}
+.badge.chip-live.blue{background:linear-gradient(135deg,var(--brand),#7db3ff)}
+.responsavel-box.needs-attention{background:rgba(var(--warn-rgb),.12);border:1px solid rgba(var(--warn-rgb),.55);box-shadow:0 0 0 1px rgba(var(--warn-rgb),.2)}
 .notif-panel{position:absolute;top:52px;right:20px;width:360px;max-width:92vw;max-height:70vh;overflow:auto;background:var(--card);backdrop-filter:var(--card-blur);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);z-index:50;padding:8px}
 .notif-item{display:flex;gap:10px;padding:10px 11px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:background-color .12s ease,border-color .12s ease}
 .notif-item:hover{background:var(--surface-2);border-color:var(--border)}
@@ -989,7 +1004,7 @@ function relatedClaims(c){
 /* Badge visual do tipo de parte */
 function partyBadge(pt){
   if(pt==="Terceiro") return U.el("span",{class:"badge red",text:"Terceiro"});
-  if(pt==="Aviso") return U.el("span",{class:"badge amber",text:"Aviso"});
+  if(pt==="Aviso") return U.el("span",{class:"badge amber",text:"Atendimento"});
   return U.el("span",{class:"badge green",text:"Segurado"});
 }
 
@@ -1065,6 +1080,7 @@ function shell(inner,crumb){
     if(m[0]==="sinistros"&&atrasadosGlobal>0){ kids.push(U.el("span",{class:"nav-dot",title:atrasadosGlobal+" processo(s) atrasado(s)"})); }
         var _cls=(State.route===m[0]?"active":"");
     if(m[0]==="demandas" && demandaUnreadCount()>0) _cls+=" blink-demanda";
+    if(m[0]==="tarefas" && myUnreadCount()>0) _cls+=" blink-demanda";
     return U.el("a",{class:_cls,title:m[1],onclick:function(){navigate(m[0]);}},kids);
   }));
     var side=U.el("div",{class:"sidebar"+(isSidebarCollapsed()?" collapsed":"")},[
@@ -1126,6 +1142,23 @@ function distinctValues(rows,field){
   rows.forEach(function(c){ var v=c[field]; if(v&&!seen[v]){seen[v]=true;out.push(v);} });
   return out.sort(function(a,b){return String(a).localeCompare(String(b),"pt-BR");});
 }
+
+function distinctComputed(rows,fn){
+  var seen={},out=[];
+  rows.forEach(function(c){ var v=fn(c); if(v&&!seen[v]){seen[v]=true;out.push(v);} });
+  return out.sort(function(a,b){return String(a).localeCompare(String(b),"pt-BR");});
+}
+var CIA_GRUPO_PORT=["AZUL","ITAU","MITSI"];
+function dashCiaLabel(cia){
+  var v=String(cia||"").trim().toUpperCase();
+  return CIA_GRUPO_PORT.indexOf(v)>=0 ? "PORT" : (cia||"");
+}
+var OFICINA_IGNORADA="01-CONSTATAÇÃO";
+function dashOficinaKey(oficina){
+  var v=String(oficina||"").trim().toUpperCase();
+  return v===OFICINA_IGNORADA.toUpperCase() ? "" : (oficina||"");
+}
+function tipoPartyLabel(v){ return v==="Aviso" ? "Atendimento" : v; }
 
 /* ---- agregação genérica por chave (oficina / seguradora / ramo) ---- */
 function buildAggregation(rows,keyFn){
@@ -1313,6 +1346,12 @@ function buildSelect(sentinel,allLabel,options,current,onChange){
   return U.el("select",{class:"inline",onchange:function(e){onChange(e.target.value);}},opts);
 }
 
+function buildSelectLabeled(sentinel,allLabel,pairs,current,onChange){
+  var opts=[U.el("option",{value:sentinel,text:allLabel,selected:current===sentinel?"selected":null})];
+  pairs.forEach(function(p){ opts.push(U.el("option",{value:p[0],text:p[1],selected:current===p[0]?"selected":null})); });
+  return U.el("select",{class:"inline",onchange:function(e){onChange(e.target.value);}},opts);
+}
+
 /* ---- estado dos filtros do Dashboard (em memória; reseta ao recarregar a página) ---- */
 var dashFilter={ocoDe:"",ocoAte:"",cia:"todas",ramo:"todos",oficina:"todas",tipo:"todos",status:"todos"};
 function dashHasFilters(){
@@ -1334,9 +1373,9 @@ function dashIsQuickActive(days){
 function dashSetYear(){ var y=new Date().getFullYear(); dashFilter.ocoDe=y+"-01-01"; dashFilter.ocoAte=U.todayISO(); render(); }
 function dashFilteredClaimsNoPeriod(){
   return State.claims.filter(function(c){
-    if(dashFilter.cia!=="todas" && c.cia!==dashFilter.cia) return false;
+    if(dashFilter.cia!=="todas" && dashCiaLabel(c.cia)!==dashFilter.cia) return false;
     if(dashFilter.ramo!=="todos" && c.ramo!==dashFilter.ramo) return false;
-    if(dashFilter.oficina!=="todas" && c.oficina!==dashFilter.oficina) return false;
+    if(dashFilter.oficina!=="todas" && dashOficinaKey(c.oficina)!==dashFilter.oficina) return false;
     if(dashFilter.tipo!=="todos" && c.partyType!==dashFilter.tipo) return false;
     if(dashFilter.status!=="todos" && mapSituacao(c.situacao).label!==dashFilter.status) return false;
     return true;
@@ -1633,8 +1672,8 @@ Pages.dashboard=function(){
   var stageNames=allJourneyStages();
   var byEtapa={}; rows.forEach(function(c){ var s=currentStage(c); if(s) byEtapa[s]=(byEtapa[s]||0)+1; });
 
-  var aggOficina=buildAggregation(rows,function(c){return c.oficina;});
-  var aggSeguradora=buildAggregation(rows,function(c){return c.cia;});
+  var aggOficina=buildAggregation(rows,function(c){return dashOficinaKey(c.oficina);});
+  var aggSeguradora=buildAggregation(rows,function(c){return dashCiaLabel(c.cia);});
   var aggRamo=buildAggregation(rows,function(c){return c.ramo;});
 
   var months=last12Months();
@@ -1649,15 +1688,15 @@ Pages.dashboard=function(){
     .sort(function(a,b){return String((a.na&&a.na.date)||"").localeCompare(String((b.na&&b.na.date)||""));}).slice(0,8);
 
   /* ---------- filtros (opções disponíveis) ---------- */
-  var ciaOptions=distinctValues(State.claims,"cia");
+  var ciaOptions=distinctComputed(State.claims,function(c){return dashCiaLabel(c.cia);});
   var ramoOptions=distinctValues(State.claims,"ramo");
-  var oficinaOptions=distinctValues(State.claims,"oficina");
+  var oficinaOptions=distinctComputed(State.claims,function(c){return dashOficinaKey(c.oficina);});
   var situacaoOptions=[]; (function(){var seen={}; State.claims.forEach(function(c){var l=mapSituacao(c.situacao).label; if(!seen[l]){seen[l]=true;situacaoOptions.push(l);}});})();
 
   var ciaSel=buildSelect("todas","Todas seguradoras",ciaOptions,dashFilter.cia,function(v){dashFilter.cia=v;render();});
   var ramoSel=buildSelect("todos","Todos os ramos",ramoOptions,dashFilter.ramo,function(v){dashFilter.ramo=v;render();});
   var oficinaSel=buildSelect("todas","Todas oficinas",oficinaOptions,dashFilter.oficina,function(v){dashFilter.oficina=v;render();});
-  var tipoSel=buildSelect("todos","Todos os tipos",["Segurado","Terceiro","Aviso"],dashFilter.tipo,function(v){dashFilter.tipo=v;render();});
+  var tipoSel=buildSelectLabeled("todos","Todos os tipos",[["Segurado","Segurado"],["Terceiro","Terceiro"],["Aviso","Atendimento"]],dashFilter.tipo,function(v){dashFilter.tipo=v;render();});
   var statusSel=buildSelect("todos","Todas as situações",situacaoOptions,dashFilter.status,function(v){dashFilter.status=v;render();});
 
   var quickRanges=[[7,"7 dias"],[30,"30 dias"],[90,"90 dias"],[180,"6 meses"],[365,"12 meses"]];
@@ -1736,13 +1775,13 @@ Pages.dashboard=function(){
   var statusData=Object.keys(byStatus).map(function(s,i){return {label:s,value:byStatus[s],color:colorForStatus(s,i)};}).sort(function(a,b){return b.value-a.value;});
   var donutStatus=donutChart(statusData,{onClick:function(d){dashGoToSinistros({status:d.label});}});
   var tipoColorMap={"Segurado":cssVar("--ok","#16a34a"),"Terceiro":cssVar("--danger","#dc2626"),"Aviso":cssVar("--warn","#f59e0b")};
-  var tipoData=Object.keys(byTipo).map(function(t){return {label:t,value:byTipo[t],color:tipoColorMap[t]||cssVar("--muted","#64748b")};}).sort(function(a,b){return b.value-a.value;});
-  var donutTipo=donutChart(tipoData,{onClick:function(d){dashGoToSinistros({tipo:d.label});}});
+  var tipoData=Object.keys(byTipo).map(function(t){return {key:t,label:tipoPartyLabel(t),value:byTipo[t],color:tipoColorMap[t]||cssVar("--muted","#64748b")};}).sort(function(a,b){return b.value-a.value;});
+  var donutTipo=donutChart(tipoData,{onClick:function(d){dashGoToSinistros({tipo:d.key});}});
   var etapaData=stageNames.map(function(s){return {label:s,value:byEtapa[s]||0};}).filter(function(d){return d.value>0;});
 
   var chartsRow1=U.el("div",{class:"charts-grid c3"},[
     U.el("div",{class:"chart-card"},[U.el("h4",{text:"Distribuição por Situação"}),U.el("p",{class:"sub",text:"Clique numa fatia para ver os sinistros"}),U.el("div",{class:"flexrow"},[donutStatus,legendFor(statusData,function(d){dashGoToSinistros({status:d.label});})])]),
-    U.el("div",{class:"chart-card"},[U.el("h4",{text:"Distribuição por Tipo de Parte"}),U.el("p",{class:"sub",text:"Segurado, Terceiro ou Aviso"}),U.el("div",{class:"flexrow"},[donutTipo,legendFor(tipoData,function(d){dashGoToSinistros({tipo:d.label});})])]),
+    U.el("div",{class:"chart-card"},[U.el("h4",{text:"Distribuição por Tipo de Parte"}),U.el("p",{class:"sub",text:"Segurado, Terceiro ou Atendimento"}),U.el("div",{class:"flexrow"},[donutTipo,legendFor(tipoData,function(d){dashGoToSinistros({tipo:d.key});})])]),
     U.el("div",{class:"chart-card"},[U.el("h4",{text:"Funil por Etapa da Jornada"}),U.el("p",{class:"sub",text:"Onde os sinistros em aberto estão parados"}),rankList(etapaData,{onClick:function(d){dashGoToSinistros({etapa:d.label});}})])
   ]);
 
@@ -1944,7 +1983,7 @@ Pages.sinistros=function(){
 
   var chips=[["todos","Todos"],["Em andamento","Em andamento"],["Pendente","Pendentes"],["Indenizado","Indenizados"],["Encerrado sem Indenização","Sem indenização"]];
   var chipRow=U.el("div",{class:"chips"},chips.map(function(c){return U.el("div",{class:"chip-btn"+(listFilter.status===c[0]?" active":""),text:c[1]+" ("+cs(c[0])+")",onclick:function(){listFilter.status=c[0];render();}});}));
-  var tipoChips=[["todos","Todos os tipos"],["Segurado","Segurados"],["Terceiro","Terceiros"],["Aviso","Avisos"]];
+  var tipoChips=[["todos","Todos os tipos"],["Segurado","Segurados"],["Terceiro","Terceiros"],["Aviso","Atendimentos"]];
   var tipoRow=U.el("div",{class:"chips"},tipoChips.map(function(c){return U.el("div",{class:"chip-btn"+(listFilter.tipo===c[0]?" active":""),text:c[1]+" ("+ct(c[0])+")",onclick:function(){listFilter.tipo=c[0];render();}});}));
 
   // ---- Filtros por data de Ocorrência e de Aviso ----
@@ -2326,8 +2365,8 @@ function saveResponsavel(claimId,user){ setOvr(claimId,{responsavelUser:user?{id
 function responsavelBox(c,onChange){
   var atual=getResponsavel(c.id);
   var users=loadUsers();
-  var wrap=U.el("div",{style:"background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px"},[]);
-  wrap.appendChild(U.el("div",{style:"font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px",text:"Responsável"}));
+  var wrap=U.el("div",{class:"responsavel-box"+(!atual?" needs-attention":""),style:"border-radius:8px;padding:10px 12px"+(atual?";background:var(--surface-2);border:1px solid var(--border)":"")},[]);
+  wrap.appendChild(U.el("div",{style:"font-size:11px;font-weight:700;color:"+(!atual?"var(--warn)":"var(--ink-soft)")+";text-transform:uppercase;letter-spacing:.5px",text:!atual?"⚠ Responsável":"Responsável"}));
   var sel=U.el("select",{class:"inline",style:"min-width:180px;margin-top:6px",onchange:function(e){
        if(!requireEdit()){ e.target.value=atual?atual.id:""; return; }
     var uid=e.target.value;
@@ -2407,7 +2446,9 @@ function detailHeader(c,sit,rel){
   var temp=getTemp(c.id);
   var tempOpts=loadTempOptions();
   var tempSel=U.el("select",{class:"inline",style:"min-width:150px",onchange:function(e){saveTemp(c.id,e.target.value);if(typeof logAudit==="function")logAudit(c.id,"Temperatura alterada",e.target.value||"(sem)");rerender();}},
-    [U.el("option",{value:"",text:"🌡 Temperatura...",selected:!temp?"selected":null})].concat(tempOpts.map(function(op){return U.el("option",{value:op,text:op,selected:temp===op?"selected":null});})));
+    [U.el("option",{value:"",text:"🌡 Atendimento...",selected:!temp?"selected":null})].concat(tempOpts.map(function(op){return U.el("option",{value:op,text:op,selected:temp===op?"selected":null});})));
+  var tempClr=tempColor(temp);
+  var tempUrgente=(tempClr==="red"||tempClr==="amber");
 
   var tempManage=null;
   if(isAdmin){
@@ -2433,14 +2474,14 @@ function detailHeader(c,sit,rel){
       U.el("button",{class:"btn sec xs",title:"Remover atual",text:"✕",onclick:function(){if(!sitAt){alert("Selecione uma situação para remover.");return;}if(confirm("Remover \""+sitAt+"\" da lista?")){var l=loadSitOptions().filter(function(x){return x!==sitAt;});saveSitOptions(l);saveSitAtend(c.id,"");rerender();}}})
     ]);
   }
-  var sitAtBadge=U.el("span",{class:"badge blue",style:"gap:6px"},[sitSel,sitManage]);
+  var sitAtBadge=U.el("span",{class:"badge chip-live blue",style:"gap:6px"},[sitSel,sitManage]);
 
 
   var badgesRow=U.el("div",{class:"detail-badges",style:"align-items:center"},[
     partyBadge(c.partyType),
     U.el("span",{class:"badge "+sit.cls,text:sit.label}),
     rel.length?U.el("span",{class:"badge purple",text:rel.length+" processo(s) vinculado(s)"}):U.el("span",{class:"badge gray",text:"Sem vínculos"}),
-        U.el("span",{class:"badge "+tempColor(temp),style:"gap:6px"},[tempSel,tempManage]),
+        U.el("span",{class:"badge chip-live "+tempClr+(tempUrgente?" neon-alert":""),style:"gap:6px"+(tempUrgente?";--neon-rgb:var(--danger-rgb)":""),title:tempUrgente?"Atendimento requer atenção":""},[tempSel,tempManage]),
     caminhoBadge,
     sitAtBadge
   ]);
@@ -2454,17 +2495,25 @@ function detailHeader(c,sit,rel){
   ]);
 
   // ----- coluna direita: próxima ação + último histórico -----
-  var na=(typeof getNextAction==="function")?getNextAction(c.id):null;
+var na=(typeof getNextAction==="function")?getNextAction(c.id):null;
+  var atrasada=(typeof isAtrasado==="function")?isAtrasado(c):false;
   var naCard;
-  if(na&&na.title){
+  if(na&&na.title&&!atrasada){
     naCard=U.el("div",{style:"background:rgba(var(--brand-rgb),.08);border:1px solid rgba(var(--brand-rgb),.28);border-radius:8px;padding:10px 12px"},[
       U.el("div",{style:"font-size:11px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.5px",text:"Próxima ação"}),
       U.el("div",{style:"font-weight:700;margin-top:2px",text:na.title}),
       U.el("div",{class:"muted",style:"font-size:12px",text:na.date?("Prazo: "+U.fmtDateBR(na.date)):"Sem prazo"}),
       U.el("button",{class:"btn sec xs",style:"margin-top:6px",text:"Ver / editar",onclick:function(){detailTab="proxima";render();}})
     ]);
+  } else if(na&&na.title&&atrasada){
+    naCard=U.el("div",{class:"neon-alert",style:"--neon-rgb:var(--danger-rgb);background:rgba(var(--danger-rgb),.1);border:1px solid rgba(var(--danger-rgb),.35);border-radius:8px;padding:10px 12px"},[
+      U.el("div",{style:"font-size:11px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.5px",text:"⚠ Próxima ação atrasada"}),
+      U.el("div",{style:"font-weight:700;margin-top:2px",text:na.title}),
+      U.el("div",{class:"muted",style:"font-size:12px",text:"Prazo era: "+U.fmtDateBR(na.date)}),
+      U.el("button",{class:"btn sec xs",style:"margin-top:6px",text:"Ver / editar",onclick:function(){detailTab="proxima";render();}})
+    ]);
   } else {
-    naCard=U.el("div",{style:"background:rgba(var(--danger-rgb),.08);border:1px solid rgba(var(--danger-rgb),.3);border-radius:8px;padding:10px 12px"},[
+    naCard=U.el("div",{class:"neon-alert",style:"--neon-rgb:var(--danger-rgb);background:rgba(var(--danger-rgb),.08);border:1px solid rgba(var(--danger-rgb),.3);border-radius:8px;padding:10px 12px"},[
       U.el("div",{style:"font-size:11px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.5px",text:"⚠ Sem próxima ação"}),
       U.el("div",{class:"muted",style:"font-size:12px;margin:2px 0",text:"Nenhuma próxima ação definida."}),
       U.el("button",{class:"btn xs",style:"margin-top:4px",text:"+ Criar próxima ação",onclick:function(){detailTab="proxima";render();}})
@@ -2473,14 +2522,15 @@ function detailHeader(c,sit,rel){
 
   var comms=(typeof loadComms==="function")?loadComms(c.id):[];
   var last=comms.length?comms[comms.length-1]:null;
-  var lastCard=U.el("div",{style:"background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:8px"},[
-    U.el("div",{style:"font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px",text:"Último histórico"}),
+  var semAtualizacao=(typeof isSemAtualizacao==="function")?isSemAtualizacao(c):false;
+  var lastCard=U.el("div",{class:semAtualizacao?"neon-alert":"",style:(semAtualizacao?"--neon-rgb:var(--danger-rgb);background:rgba(var(--danger-rgb),.08);border:1px solid rgba(var(--danger-rgb),.35)":"background:var(--surface-2);border:1px solid var(--border)")+";border-radius:8px;padding:10px 12px;margin-top:8px"},[
+    U.el("div",{style:"font-size:11px;font-weight:700;color:"+(semAtualizacao?"var(--danger)":"var(--ink-soft)")+";text-transform:uppercase;letter-spacing:.5px",text:semAtualizacao?"⚠ Último histórico (+3 dias sem retorno)":"Último histórico"}),
     last?U.el("div",{},[
       U.el("div",{style:"font-size:12px;margin-top:2px"},[U.el("span",{class:"badge "+(last.canal==="Cliente"?"green":last.canal==="Oficina"?"amber":"purple"),text:last.canal}),U.el("span",{class:"muted",style:"margin-left:6px",text:last.meio+" • "+U.fmtDateBR(last.date)})]),
       U.el("div",{style:"font-size:12px;margin-top:4px;max-height:48px;overflow:hidden",text:last.text})
     ]):U.el("div",{class:"muted",style:"font-size:12px;margin-top:2px",text:"Nenhum histórico registrado."}),
     U.el("button",{class:"btn sec xs",style:"margin-top:6px",text:"Abrir histórico",onclick:function(){detailTab="historico";render();}})
-  ]);
+  ]);   
 
     var respCard=responsavelBox(c,function(){ rerender(); });
   var right=U.el("div",{style:"width:280px;flex-shrink:0"},[respCard,naCard,lastCard]);
@@ -3014,6 +3064,24 @@ Pages.config=function(){
     return shell(U.el("div",{},content),"Configurações");
   }
 
+// ---- Importação de histórico em lote (planilha) ----
+  var fileInputHist=U.el("input",{type:"file",accept:".csv",style:"display:none"});
+  fileInputHist.addEventListener("change",function(e){
+    var f=e.target.files && e.target.files[0];
+    if(f) importHistoricoFile(f);
+    fileInputHist.value="";
+  });
+  content.push(U.el("div",{class:"card"},[
+    U.el("h3",{text:"Importar último histórico em lote",style:"margin-top:0"}),
+    U.el("p",{class:"muted",text:"Baixe a planilha modelo, preencha a coluna \"Últ. Histórico\" no formato DD/MM/AAAA: descrição (ex.: 10/08/2026: Aguard. chegada de peças) e importe de volta. O sistema localiza o processo pelo Nosso N°, Tipo, Segurado/Terceiro e N° Sinistro, e registra a comunicação com Com quem = Dados importado e Meio = Dados importado."}),
+    U.el("div",{style:"display:flex;gap:10px;flex-wrap:wrap;align-items:center"},[
+      U.el("button",{class:"btn sec",text:"⬇ Baixar planilha modelo",onclick:downloadHistoricoTemplate}),
+      U.el("button",{class:"btn",text:"⬆ Importar planilha preenchida",onclick:function(){fileInputHist.click();}}),
+      fileInputHist
+    ]),
+    U.el("p",{class:"muted",style:"margin-top:10px;font-size:12px",text:"Depois de importar, um relatório CSV de validação é baixado automaticamente, linha a linha, mostrando o que foi registrado e o que precisa de revisão manual."})
+  ]));
+
   // Editor de jornadas por ramo
   var editor=U.el("div",{class:"card"});
   function rerenderCfg(){ render(); }
@@ -3187,7 +3255,114 @@ function syncAll(opts){
   return tipoLoop(0);
 }
 
-
+/* ==========================================================================
+   IMPORTAÇÃO DE HISTÓRICO EM LOTE (planilha CSV) — Configurações
+   ========================================================================== */
+function csvField(v){ return '"'+String(v==null?"":v).replace(/"/g,'""')+'"'; }
+function downloadCSV(filename, rows){
+  var lines=rows.map(function(r){ return r.map(csvField).join(";"); });
+  var blob=new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv;charset=utf-8;"});
+  var a=U.el("a",{href:URL.createObjectURL(blob),download:filename});
+  document.body.appendChild(a); a.click(); a.remove();
+}
+/* parser de CSV separado por ; com campos entre aspas (compatível com o exportCSV existente) */
+function parseCSVSemi(text){
+  var rows=[],row=[],field="",inQuotes=false;
+  text=String(text||"").replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+  for(var i=0;i<text.length;i++){
+    var ch=text[i];
+    if(inQuotes){
+      if(ch==='"'){ if(text[i+1]==='"'){ field+='"'; i++; } else { inQuotes=false; } }
+      else field+=ch;
+    } else {
+      if(ch==='"') inQuotes=true;
+      else if(ch===";"){ row.push(field); field=""; }
+      else if(ch==="\n"){ row.push(field); rows.push(row); row=[]; field=""; }
+      else field+=ch;
+    }
+  }
+  if(field.length||row.length){ row.push(field); rows.push(row); }
+  return rows.filter(function(r){ return !(r.length===1 && r[0]===""); });
+}
+function downloadHistoricoTemplate(){
+  var header=["Nosso N°","Tipo","Segurado/Terceiro","N° Sinistro","Últ. Histórico"];
+  var rows=[header].concat(State.claims.map(function(c){
+    return [c.nosnum||"",c.tipo||"",c.segurado||"",c.numsin||"",""];
+  }));
+  downloadCSV("modelo_historico.csv", rows);
+}
+/* extrai "DD/MM/AAAA: texto" -> {date iso, dateBR, text, dataInferida}.
+   Se a célula estiver vazia, retorna null (nada a importar).
+   Se tiver texto mas SEM data válida no início, usa a data de hoje e
+   considera a célula inteira como descrição (dataInferida=true). */
+function parseHistoricoCell(v){
+  var raw=String(v||"").trim();
+  if(!raw) return null;
+  var m=raw.match(/^(\d{2}\/\d{2}\/\d{4})\s*:\s*([\s\S]*)$/);
+  if(m){
+    var iso=U.isoFromBR(m[1]);
+    if(iso) return {date:iso, dateBR:m[1], text:m[2].trim(), dataInferida:false};
+  }
+  var hoje=U.todayISO();
+  return {date:hoje, dateBR:U.fmtDateBR(hoje), text:raw, dataInferida:true};
+}
+function findClaimForHistoricoRow(row){
+  var nosnum=String(row.nosnum||"").trim(), tipo=String(row.tipo||"").trim(),
+      segurado=String(row.segurado||"").trim().toUpperCase(), numsin=String(row.numsin||"").trim();
+  return State.claims.filter(function(c){
+    return String(c.nosnum||"").trim()===nosnum &&
+           String(c.tipo||"").trim()===tipo &&
+           String(c.segurado||"").trim().toUpperCase()===segurado &&
+           String(c.numsin||"").trim()===numsin;
+  });
+}
+function importHistoricoFile(file){
+  if(!requireEdit()) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var rows=parseCSVSemi(e.target.result);
+    if(!rows.length){ alert("Planilha vazia ou em formato inválido."); return; }
+    rows.shift(); // remove cabeçalho
+    var report=[["Nosso N°","Tipo","Segurado/Terceiro","N° Sinistro","Últ. Histórico (original)","Status","Data registrada","Descrição registrada"]];
+    var ok=0,falha=0;
+    rows.forEach(function(cols){
+      var row={nosnum:cols[0],tipo:cols[1],segurado:cols[2],numsin:cols[3]};
+      var cel=cols[4]||"";
+      if(!row.nosnum && !row.tipo && !row.segurado && !row.numsin && !cel) return; // linha em branco
+      var parsed=parseHistoricoCell(cel);
+      if(!parsed){
+        falha++;
+        report.push([row.nosnum,row.tipo,row.segurado,row.numsin,cel,"Sem conteúdo — ignorado","",""]);
+        return;
+      }
+      var matches=findClaimForHistoricoRow(row);
+      if(matches.length===0){
+        falha++;
+        report.push([row.nosnum,row.tipo,row.segurado,row.numsin,cel,"Não encontrado no sistema","",""]);
+        return;
+      }
+      if(matches.length>1){
+        falha++;
+        report.push([row.nosnum,row.tipo,row.segurado,row.numsin,cel,"Ambíguo ("+matches.length+" processos coincidem)","",""]);
+        return;
+      }
+      var claim=matches[0];
+      var arr=loadComms(claim.id);
+      arr.push({id:U.uid("cm"),canal:"Dados importado",meio:"Dados importado",date:parsed.date,text:parsed.text,who:(State.session&&State.session.name)||"—",at:new Date().toISOString()});
+      saveComms(claim.id,arr);
+      logAudit(claim.id,"Histórico importado via planilha",parsed.text);
+      ok++;
+      report.push([row.nosnum,row.tipo,row.segurado,row.numsin,cel,
+        parsed.dataInferida?"OK — importado (sem data válida na célula: usada a data da importação)":"OK — importado",
+        parsed.dateBR,parsed.text]);
+    });
+    downloadCSV("relatorio_importacao_historico.csv", report);
+    alert("Importação concluída: "+ok+" registrado(s), "+falha+" com problema. O relatório de validação foi baixado.");
+    render();
+  };
+  reader.onerror=function(){ alert("Não foi possível ler o arquivo."); };
+  reader.readAsText(file, "UTF-8");
+}
 
 function exportCSV(rows){rows=rows||State.claims;var cols=["numsin","segurado","placa","cia","ramo","situacao","numapo","datoco","datavi","datenc","valavi","valind","franquia","responsavel","oficina"];var head=cols.join(";");var lines=rows.map(function(c){return cols.map(function(k){var v=c[k];if(/^dat/.test(k))v=U.fmtDateBR(v);return '"'+String(v==null?"":v).replace(/"/g,'""')+'"';}).join(";");});var blob=new Blob(["\ufeff"+head+"\n"+lines.join("\n")],{type:"text/csv;charset=utf-8;"});var a=U.el("a",{href:URL.createObjectURL(blob),download:"sinistros_corp.csv"});document.body.appendChild(a);a.click();a.remove();}
 

@@ -631,7 +631,8 @@ var ICONS={
   config:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.97 7.97 0 0 0 .1-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3h-4l-.4 2.9a8 8 0 0 0-1.7 1l-2.5-1-2 3.5L6.5 11a8 8 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a8 8 0 0 0 1.7 1L11 21h4l.4-2.9a8 8 0 0 0 1.7-1l2.5 1 2-3.5L19.4 13z"/></svg>',
   sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.6" y2="6.6"/><line x1="17.4" y1="17.4" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.6" y2="17.4"/><line x1="17.4" y1="6.6" x2="19.1" y2="4.9"/></svg>',
   moon:'<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>',
-  pulse:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 12 7 12 9.5 5 14.5 19 17 12 22 12"/></svg>'
+  pulse:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 12 7 12 9.5 5 14.5 19 17 12 22 12"/></svg>',
+  abertura:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="14 3 14 9 20 9"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>'
 };
 function iconSpan(name,cls){ var e=document.createElement("span"); e.className="icon"+(cls?(" "+cls):""); e.innerHTML=ICONS[name]||""; return e; }
 
@@ -905,6 +906,24 @@ function defaultRamoTemplate(){
     ]
   };
 }
+
+/* ---- Template de etapas para processos do tipo "Atendimento" (independe do ramo) ---- */
+var ATEND_TPL_KEY="corp_atendimento_template";
+function defaultAtendTemplate(){
+  return { steps:[
+    {id:"at_inicial",title:"Atendimento inicial",statusOptions:STATUS_DEFAULT.slice()},
+    {id:"at_encaminhamento",title:"Encaminhamento",statusOptions:STATUS_DEFAULT.slice()},
+    {id:"at_conclusao",title:"Conclusão",statusOptions:STATUS_DEFAULT.slice()}
+  ]};
+}
+function loadAtendTemplate(){
+  try{ var v=JSON.parse(localStorage.getItem(ATEND_TPL_KEY)); if(v&&v.steps&&v.steps.length) return v; }catch(e){}
+  return defaultAtendTemplate();
+}
+function saveAtendTemplate(t){ localStorage.setItem(ATEND_TPL_KEY,JSON.stringify(t)); }
+/* Processo do tipo "Atendimento" (partyType interno continua "Aviso") usa jornada própria */
+function isAtendimento(c){ return c&&c.partyType==="Aviso"; }
+
 /* Garante que um ramo exista nos templates. Chamado na sincronização e ao abrir config. */
 function ensureRamoTemplate(ramo){
   if(!ramo) return;
@@ -960,6 +979,64 @@ function partyTypeFromTipo(tipo){
   if(t.indexOf("ATENDIMENTO")>=0) return "Aviso";
   return "Segurado"; // "Sinistro"
 }
+
+/* ==========================================================================
+   MÓDULO ABERTURA — criação manual de processos (não vêm da API CORP)
+   O objeto gerado usa exatamente o mesmo formato de mapCorp(), por isso
+   circula normalmente em Sinistros, Clientes, Seguradoras, Oficinas,
+   Dashboard e todos os filtros, sem precisar de nenhum tratamento especial
+   no resto do sistema. `origem:"manual"` é o único jeito de diferenciar.
+   O id usa prefixo "man_" para nunca colidir com ids vindos da API
+   ("clm_"+codfil+tipo+nosnum), então a sincronização (syncAll) nunca
+   sobrescreve nem remove esses processos.
+   ========================================================================== */
+function isManualClaim(c){ return !!(c&&c.origem==="manual"); }
+function createManualClaim(data){
+  data=data||{};
+  var tipoRaw = data.tipoParte==="Terceiro" ? "TERCEIRO" : (data.tipoParte==="Atendimento" ? "ATENDIMENTO" : "SINISTRO");
+  var claim = {
+    id:"man_"+U.uid(""),
+    codfil:"", nosnum:"MAN-"+Date.now(), numsin:(data.numsin||"").trim(), tipo:tipoRaw, codigo:"",
+    partyType:partyTypeFromTipo(tipoRaw),
+    linkKey:"",
+    segurado:(data.segurado||"").trim(), cia:(data.cia||"").trim(), ramo:(data.ramo||"").trim(),
+    numapo:(data.numapo||"").trim(), numend:(data.numend||"").trim(), item:(data.item||"").trim(),
+    placa:(data.placa||"").trim().toUpperCase(), situacao:"PENDENTE",
+    franquia:Number(data.franquia)||0, valavi:Number(data.valavi)||0, valind:0, valdes:0,
+    datavi:data.datavi||U.todayISO(), datoco:data.datoco||"", datenc:"", datvis:"", datlib:"",
+    proxima_agenda:"", agendamento:"",
+    responsavel:"", oficina:(data.oficina||"").trim(), tipo_atendimento:"",
+    descricao:(data.descricao||"").trim(), observacoes:(data.observacoes||"").trim(),
+    origem:"manual",
+    criadoPor:(currentUser()&&currentUser().nome)||"—",
+    criadoEm:new Date().toISOString(),
+    // Reservado para quando o envio ao CORP existir (hoje só recebemos dados via API)
+    sync_corp:{status:"local_only", sentAt:null, corpRef:null},
+    _raw:null
+  };
+  if(claim.ramo) ensureRamoTemplate(claim.ramo);
+  var arr=State.claims.slice();
+  arr.push(claim);
+  State.claims=arr;
+  saveClaims(State.claims);
+  if(data.responsavelId){ var u=findUserById(data.responsavelId); if(u) saveResponsavel(claim.id,u); }
+  if(typeof logAudit==="function") logAudit(claim.id,"Processo criado manualmente","Via módulo Abertura");
+  return claim;
+}
+/* Placeholder padronizado para o ENVIO de dados ao CORP (via futura). Hoje o
+   sistema só recebe (CorpAPI.fetchSinistros). Quando o endpoint de envio
+   existir, implementar aqui seguindo o mesmo padrão de auth do CorpAPI
+   (base()/withAuth) e então atualizar claim.sync_corp. */
+var CorpOutbound=(function(){
+  function pushClaim(claim){
+    return Promise.reject(new Error("Envio ao CORP ainda não disponível — endpoint não implantado."));
+  }
+  return {pushClaim:pushClaim};
+})();
+
+/* Chave que vincula segurado e terceiros do MESMO evento.
+   Ajuste aqui se o vínculo correto for outro campo (ex.: c.numsin). */
+function linkKey(c){ return String(c.codfil||"")+"|"+String(c.numapo||""); }
 /* Chave que vincula segurado e terceiros do MESMO evento.
    Ajuste aqui se o vínculo correto for outro campo (ex.: c.numsin). */
 function linkKey(c){ return String(c.codfil||"")+"|"+String(c.numapo||""); }
@@ -1067,7 +1144,7 @@ var State={route:"dashboard",param:null,claims:loadClaims(),session:{name:"Marin
 function navigate(r,p){State.route=r;State.param=p||null;location.hash="#/"+r+(p?"/"+p:"");render();}
 window.addEventListener("hashchange",function(){var h=location.hash.replace(/^#\//,"").split("/");if(h[0]!==State.route||(h[1]||null)!==State.param){State.route=h[0]||"dashboard";State.param=h[1]||null;render();}});
 
-var MENU=[["dashboard","Dashboard","dashboard"],["sinistros","Sinistros","sinistros"],["demandas","Nova Demanda","sinistros"],["tarefas","Comunicação","integracao"],["clientes","Clientes","clientes"],["seguradoras","Seguradoras","seguradoras"],["oficinas","Oficinas","oficinas"],["relatorios","Relatórios","relatorios"],["integracao","Integração CORP","integracao"],["config","Configurações","config"]];
+var MENU=[["dashboard","Dashboard","dashboard"],["sinistros","Sinistros","sinistros"],["abertura","Abertura","abertura"],["demandas","Nova Demanda","sinistros"],["tarefas","Comunicação","integracao"],["clientes","Clientes","clientes"],["seguradoras","Seguradoras","seguradoras"],["oficinas","Oficinas","oficinas"],["relatorios","Relatórios","relatorios"],["integracao","Integração CORP","integracao"],["config","Configurações","config"]];
 function shell(inner,crumb){
   var atrasadosGlobal=0; try{ atrasadosGlobal=State.claims.filter(isAtrasado).length; }catch(e){}
     var _role=currentRole();
@@ -1353,11 +1430,11 @@ function buildSelectLabeled(sentinel,allLabel,pairs,current,onChange){
 }
 
 /* ---- estado dos filtros do Dashboard (em memória; reseta ao recarregar a página) ---- */
-var dashFilter={ocoDe:"",ocoAte:"",cia:"todas",ramo:"todos",oficina:"todas",tipo:"todos",status:"todos"};
+var dashFilter={ocoDe:"",ocoAte:"",cia:"todas",ramo:"todos",oficina:"todas",tipo:"todos",status:"todos",manual:false,aberto:false};
 function dashHasFilters(){
-  return !!(dashFilter.ocoDe||dashFilter.ocoAte||dashFilter.cia!=="todas"||dashFilter.ramo!=="todos"||dashFilter.oficina!=="todas"||dashFilter.tipo!=="todos"||dashFilter.status!=="todos");
+  return !!(dashFilter.ocoDe||dashFilter.ocoAte||dashFilter.cia!=="todas"||dashFilter.ramo!=="todos"||dashFilter.oficina!=="todas"||dashFilter.tipo!=="todos"||dashFilter.status!=="todos"||dashFilter.manual||dashFilter.aberto);
 }
-function dashClear(){ dashFilter={ocoDe:"",ocoAte:"",cia:"todas",ramo:"todos",oficina:"todas",tipo:"todos",status:"todos"}; render(); }
+function dashClear(){ dashFilter={ocoDe:"",ocoAte:"",cia:"todas",ramo:"todos",oficina:"todas",tipo:"todos",status:"todos",manual:false,aberto:false}; render(); }
 function dashSetRange(days){
   if(days==null){ dashFilter.ocoDe=""; dashFilter.ocoAte=""; render(); return; }
   var d=new Date(); d.setDate(d.getDate()-days);
@@ -1378,6 +1455,11 @@ function dashFilteredClaimsNoPeriod(){
     if(dashFilter.oficina!=="todas" && dashOficinaKey(c.oficina)!==dashFilter.oficina) return false;
     if(dashFilter.tipo!=="todos" && c.partyType!==dashFilter.tipo) return false;
     if(dashFilter.status!=="todos" && mapSituacao(c.situacao).label!==dashFilter.status) return false;
+    if(dashFilter.manual && !isManualClaim(c)) return false;
+    if(dashFilter.aberto){
+      var _slAbD=mapSituacao(c.situacao).label;
+      if(_slAbD!=="Pendente" && _slAbD!=="Em andamento") return false;
+    }
     return true;
   });
 }
@@ -1718,9 +1800,11 @@ Pages.dashboard=function(){
     U.el("label",{class:"mini",text:"Ramo:"}),ramoSel,
     U.el("label",{class:"mini",text:"Oficina:"}),oficinaSel
   ]);
-  var chipRow2=U.el("div",{class:"row"},[
+ var chipRow2=U.el("div",{class:"row"},[
     U.el("label",{class:"mini",text:"Tipo:"}),tipoSel,
     U.el("label",{class:"mini",text:"Situação:"}),statusSel,
+    U.el("div",{class:"chip-btn"+(dashFilter.manual?" active":""),text:"✎ Criados manualmente",onclick:function(){dashFilter.manual=!dashFilter.manual;render();}}),
+    U.el("div",{class:"chip-btn"+(dashFilter.aberto?" active":""),text:"📂 Em aberto (Pendente/Em andamento)",onclick:function(){dashFilter.aberto=!dashFilter.aberto;render();}}),
     U.el("button",{class:"btn sec sm",text:"Limpar filtros",onclick:dashClear}),
     U.el("button",{class:"btn ghost sm",text:"⭳ Exportar filtrado (CSV)",onclick:function(){exportCSV(rows);}}),
     dashHasFilters()?U.el("span",{class:"badge blue",text:total+" de "+totalGeral+" sinistro(s) no recorte"}):U.el("span",{class:"muted",style:"font-size:12px",text:"Mostrando todos os "+totalGeral+" sinistros sincronizados"})
@@ -1924,6 +2008,7 @@ Pages.sinistros=function(){
       listFilter.tipo="todos";listFilter.status="todos";listFilter.etapa="todos";
       listFilter.ocoDe="";listFilter.ocoAte="";listFilter.aviDe="";listFilter.aviAte="";
            listFilter.pa="";listFilter.atrasado=false;listFilter.semAtu=false;
+      listFilter.manual=false;listFilter.aberto=false;
       listFilter.sitatend="todas";
       render();
     }});
@@ -1940,6 +2025,11 @@ Pages.sinistros=function(){
       if(listFilter.pa){var na=getNextAction(c.id);if(!na||!na.date||na.date>listFilter.pa)return false;}
       if(listFilter.atrasado&&!isAtrasado(c))return false;
       if(listFilter.semAtu&&!isSemAtualizacao(c))return false;
+    }
+    if(except!=="manual" && listFilter.manual && !isManualClaim(c)) return false;
+    if(except!=="aberto" && listFilter.aberto){
+      var _slAb=mapSituacao(c.situacao).label;
+      if(_slAb!=="Pendente" && _slAb!=="Em andamento") return false;
     }
     // datas sempre valem (fazem parte do recorte/período)
     if(listFilter.ocoDe&&(!c.datoco||c.datoco<listFilter.ocoDe))return false;
@@ -1968,7 +2058,9 @@ Pages.sinistros=function(){
   var baseTipo   =State.claims.filter(function(c){return passa(c,"tipo");});
   var baseStatus =State.claims.filter(function(c){return passa(c,"status");});
   var baseEtapa  =State.claims.filter(function(c){return passa(c,"etapa");});
-  var baseEspec  =State.claims.filter(function(c){return passa(c,"especial");});
+ var baseEspec  =State.claims.filter(function(c){return passa(c,"especial");});
+  var baseManual =State.claims.filter(function(c){return passa(c,"manual");});
+  var baseAberto =State.claims.filter(function(c){return passa(c,"aberto");});
 
   // contagens de tipo (excluindo finalizados, conforme regra)
   var cntTipo={},totalNaoFinal=0;
@@ -2006,11 +2098,15 @@ Pages.sinistros=function(){
 
 
   // ---- Linha de filtros ESPECIAIS (próxima ação por data, atrasados, sem atualização) ----
-  if(listFilter.pa===undefined) listFilter.pa="";        // data da próxima ação (até essa data)
+ if(listFilter.pa===undefined) listFilter.pa="";        // data da próxima ação (até essa data)
   if(listFilter.atrasado===undefined) listFilter.atrasado=false;
   if(listFilter.semAtu===undefined) listFilter.semAtu=false;
+  if(listFilter.manual===undefined) listFilter.manual=false;
+  if(listFilter.aberto===undefined) listFilter.aberto=false;
     var qtdAtrasado=baseEspec.filter(isAtrasado).length;
   var qtdSemAtu=baseEspec.filter(isSemAtualizacao).length;
+  var qtdManual=baseManual.filter(isManualClaim).length;
+  var qtdAberto=baseAberto.filter(function(c){var l=mapSituacao(c.situacao).label;return l==="Pendente"||l==="Em andamento";}).length;
   var paInput=U.el("input",{type:"date",class:"inline",style:"min-width:150px",value:listFilter.pa||"",onchange:function(e){listFilter.pa=e.target.value;render();}});
   var especialRow=U.el("div",{class:"chips",style:"align-items:center"},[
     U.el("span",{class:"muted",style:"font-size:12px;margin-right:4px",text:"Próxima ação até:"}),
@@ -2018,6 +2114,8 @@ Pages.sinistros=function(){
     listFilter.pa?U.el("button",{class:"chip-btn",text:"limpar data",onclick:function(){listFilter.pa="";render();}}):null,
     U.el("div",{class:"chip-btn"+(listFilter.atrasado?" active":""),text:"⏰ Atrasados ("+qtdAtrasado+")",onclick:function(){listFilter.atrasado=!listFilter.atrasado;render();}}),
         U.el("div",{class:"chip-btn"+(listFilter.semAtu?" active":""),text:"🔕 Sem atualização ("+qtdSemAtu+")",onclick:function(){listFilter.semAtu=!listFilter.semAtu;render();}}),
+    U.el("div",{class:"chip-btn"+(listFilter.manual?" active":""),text:"✎ Criados manualmente ("+qtdManual+")",onclick:function(){listFilter.manual=!listFilter.manual;render();}}),
+    U.el("div",{class:"chip-btn"+(listFilter.aberto?" active":""),text:"📂 Em aberto (Pendente/Em andamento) ("+qtdAberto+")",onclick:function(){listFilter.aberto=!listFilter.aberto;render();}}),
     U.el("span",{class:"muted",style:"font-size:12px;margin-left:8px;margin-right:4px",text:"Situação:"}),
     (function(){
       if(listFilter.sitatend===undefined) listFilter.sitatend="todas";
@@ -2059,6 +2157,11 @@ Pages.sinistros=function(){
            if(listFilter.pa){var na=getNextAction(c.id);if(!na||!na.date||na.date>listFilter.pa)return false;}
       if(listFilter.atrasado&&!isAtrasado(c))return false;
       if(listFilter.semAtu&&!isSemAtualizacao(c))return false;
+      if(listFilter.manual&&!isManualClaim(c))return false;
+      if(listFilter.aberto){
+        var _slAb2=mapSituacao(c.situacao).label;
+        if(_slAb2!=="Pendente"&&_slAb2!=="Em andamento")return false;
+      }
             if(listFilter.ocoDe&&(!c.datoco||c.datoco<listFilter.ocoDe))return false;
       if(listFilter.ocoAte&&(!c.datoco||c.datoco>listFilter.ocoAte))return false;
       if(listFilter.aviDe&&(!c.datavi||c.datavi<listFilter.aviDe))return false;
@@ -2097,8 +2200,10 @@ Pages.sinistros=function(){
         if(listFilter.ocoDe||listFilter.ocoAte)n++;
         if(listFilter.aviDe||listFilter.aviAte)n++;
         if(listFilter.pa)n++;
-        if(listFilter.atrasado)n++;
+       if(listFilter.atrasado)n++;
         if(listFilter.semAtu)n++;
+        if(listFilter.manual)n++;
+        if(listFilter.aberto)n++;
         return n?U.el("span",{class:"badge blue",text:n+" filtro(s) ativo(s)"}):U.el("span",{class:"muted",style:"font-size:12px",text:"Nenhum filtro ativo"});
       })(),
       n_limpar()
@@ -2115,6 +2220,7 @@ var COLS_KEY="corp_cols_pref";
 // Todas as colunas possíveis (key, título, função que retorna o valor da célula)
 var ALL_COLS=[
   {key:"tipo",label:"Tipo",cell:function(c){return partyBadge(c.partyType);}},
+  {key:"origem",label:"Origem",cell:function(c){return isManualClaim(c)?U.el("span",{class:"badge purple",title:"Criado por "+(c.criadoPor||"—"),text:"✎ Manual"}):U.el("span",{class:"badge gray",text:"API CORP"});}},
   {key:"numsin",label:"Nº Sinistro",cell:function(c){return U.el("a",{class:"mono",text:c.numsin||("#"+c.nosnum),onclick:function(){navigate("sinistro",c.id);}});}},
   {key:"segurado",label:"Nome",cell:function(c){return document.createTextNode(U.txt(c.segurado));}},
   {key:"placa",label:"Placa",cell:function(c){return U.el("span",{class:"mono",text:U.txt(c.placa)});}},
@@ -2132,7 +2238,7 @@ var ALL_COLS=[
   {key:"acoes",label:"Ações",cell:function(c){return U.el("button",{class:"btn sec sm",text:"Abrir",onclick:function(){navigate("sinistro",c.id);}});}}
 ];
 // Preferência padrão: colunas visíveis e ordem
-var DEFAULT_COLS={order:["tipo","numsin","segurado","placa","cia","ramo","situacao","vinculos","acoes"],widths:{}};
+var DEFAULT_COLS={order:["tipo","origem","numsin","segurado","placa","cia","ramo","situacao","vinculos","acoes"],widths:{}};
 function loadCols(){try{var v=JSON.parse(localStorage.getItem(COLS_KEY));if(v&&v.order)return v;}catch(e){}return JSON.parse(JSON.stringify(DEFAULT_COLS));}
 function saveCols(v){localStorage.setItem(COLS_KEY,JSON.stringify(v));}
 function colDef(key){for(var i=0;i<ALL_COLS.length;i++)if(ALL_COLS[i].key===key)return ALL_COLS[i];return null;}
@@ -2479,6 +2585,7 @@ function detailHeader(c,sit,rel){
 
   var badgesRow=U.el("div",{class:"detail-badges",style:"align-items:center"},[
     partyBadge(c.partyType),
+    isManualClaim(c)?U.el("span",{class:"badge purple",title:"Criado por "+(c.criadoPor||"—")+" em "+U.fmtDateBR((c.criadoEm||"").slice(0,10)),text:"✎ Criado manualmente"}):null,
     U.el("span",{class:"badge "+sit.cls,text:sit.label}),
     rel.length?U.el("span",{class:"badge purple",text:rel.length+" processo(s) vinculado(s)"}):U.el("span",{class:"badge gray",text:"Sem vínculos"}),
         U.el("span",{class:"badge chip-live "+tempClr+(tempUrgente?" neon-alert":""),style:"gap:6px"+(tempUrgente?";--neon-rgb:var(--danger-rgb)":""),title:tempUrgente?"Atendimento requer atenção":""},[tempSel,tempManage]),
@@ -2570,12 +2677,13 @@ function allJourneyStages(){
   function add(name){ if(name && !seen[name]){ seen[name]=true; out.push(name); } }
   add("Vistoria");
   add("Definir caminho");
-  var tpls=loadTemplates();
+var tpls=loadTemplates();
   Object.keys(tpls).forEach(function(ramo){
     var t=tpls[ramo]||{};
     (t.parcial||[]).forEach(function(s){ add(s.title); });
     (t.integral||[]).forEach(function(s){ add(s.title); });
   });
+  (loadAtendTemplate().steps||[]).forEach(function(s){ add(s.title); });
   return out;
 }
 // Descobre em qual etapa o processo está agora (primeira não concluída)
@@ -2585,6 +2693,17 @@ function currentStage(c){
   if(_sit==="Indenizado"||_sit==="Encerrado sem Indenização") return "";
   var uj=getUserJourney(c.id)||{};
   var steps=uj.steps||{};
+  
+  if(isAtendimento(c)){
+    var listaAt=loadAtendTemplate().steps||[];
+    for(var j=0;j<listaAt.length;j++){
+      var sdAt=steps[listaAt[j].id]||{};
+      var doneAt=String(sdAt.status||"").toLowerCase().indexOf("conclu")>=0;
+      if(!doneAt) return listaAt[j].title;
+    }
+    return listaAt.length ? listaAt[listaAt.length-1].title : "Sem etapas de Atendimento";
+  }
+  
   // Vistoria
   var v=steps["vistoria"]||{};
   if(!(String(v.status||"").toLowerCase().indexOf("conclu")>=0)) return "Vistoria";
@@ -2668,7 +2787,8 @@ function saveJourneyNotes(claimId,v){ setOvr(claimId,{journeyNotes:v}); }
 
 /* ---------- JORNADA no sinistro: lê template do RAMO + preenchimento do usuário ---------- */
 function journeyPanel(c){
-  var tpl=getRamoTemplate(c.ramo);
+  var atend=isAtendimento(c);
+  var tpl=atend?loadAtendTemplate():getRamoTemplate(c.ramo);
   var uj=getUserJourney(c.id);
   if(!uj.steps) uj.steps={};
   var wrap=U.el("div",{});
@@ -2676,10 +2796,14 @@ function journeyPanel(c){
     function persist(){ if(!canEdit()) return; saveUserJourney(c.id,uj); }
   function stepData(id){ if(!uj.steps[id]) uj.steps[id]={status:"",date:"",note:""}; return uj.steps[id]; }
 
-  // Monta a lista de etapas: fixas + as do caminho escolhido (vindas do template do ramo)
-  var lista=[{id:"vistoria",title:"Vistoria",type:"status"},{id:"caminho",title:"Definir caminho (Perda Parcial / Perda Integral)",type:"caminho"}];
-  if(uj.caminho==="parcial") lista=lista.concat(tpl.parcial);
-  else if(uj.caminho==="integral") lista=lista.concat(tpl.integral);
+  var lista;
+  if(atend){
+    lista=(tpl.steps||[]).slice();
+  } else {
+    lista=[{id:"vistoria",title:"Vistoria",type:"status"},{id:"caminho",title:"Definir caminho (Perda Parcial / Perda Integral)",type:"caminho"}];
+    if(uj.caminho==="parcial") lista=lista.concat(tpl.parcial);
+    else if(uj.caminho==="integral") lista=lista.concat(tpl.integral);
+  }
 
   var stepsEl=U.el("div",{class:"journey"});
   lista.forEach(function(step){
@@ -2692,12 +2816,11 @@ function journeyPanel(c){
         U.el("option",{value:"integral",text:"Perda Integral",selected:uj.caminho==="integral"?"selected":null})
       ]);
       body.push(U.el("div",{class:"jrow"},[U.el("div",{class:"field"},[U.el("label",{text:"Caminho do sinistro"}),sel])]));
-      var d=stepData("vistoria"); // (vistoria tratada abaixo separadamente)
+      var d=stepData("vistoria");
       stepsEl.appendChild(U.el("div",{class:"jstep"},[U.el("div",{class:"jdot "+(uj.caminho?"done":"")},[U.el("span",{text:uj.caminho?"✓":""})]),U.el("div",{class:"jbody"+(uj.caminho?" done":"")},body)]));
       return;
     }
-       // etapa com caixa de status (opções vêm do template; Vistoria usa os status configurados no ramo)
-    var opts=(step.id==="vistoria") ? (tpl.vistoriaStatus||STATUS_DEFAULT) : (step.statusOptions||STATUS_DEFAULT);
+    var opts=(!atend && step.id==="vistoria") ? (tpl.vistoriaStatus||STATUS_DEFAULT) : (step.statusOptions||STATUS_DEFAULT);
     var sd=stepData(step.id);
     var done=(sd.status||"").toLowerCase().indexOf("conclu")>=0;
     var statusSel=U.el("select",{class:"inline",style:"min-width:170px",onchange:function(e){sd.status=e.target.value;persist();rerender();}},
@@ -2711,9 +2834,9 @@ function journeyPanel(c){
   wrap.appendChild(U.el("div",{class:"card"},[
     U.el("div",{style:"display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"},[
       U.el("h3",{text:"Jornada do cliente",style:"margin:0"}),
-      U.el("span",{class:"tag-manual",text:"Etapas do ramo "+(c.ramo||"—")+" • preenchimento manual preservado na sincronização"})
+      U.el("span",{class:"tag-manual",text:atend?"Etapas de Atendimento • preenchimento manual preservado na sincronização":"Etapas do ramo "+(c.ramo||"—")+" • preenchimento manual preservado na sincronização"})
     ]),
-    U.el("p",{class:"muted",style:"margin-top:6px",text:"As etapas são definidas nas Configurações (por ramo). Aqui você preenche status, datas e observações."}),
+    U.el("p",{class:"muted",style:"margin-top:6px",text:atend?"As etapas são definidas nas Configurações (Atendimento). Aqui você preenche status, datas e observações.":"As etapas são definidas nas Configurações (por ramo). Aqui você preenche status, datas e observações."}),
        stepsEl,
     U.el("div",{style:"margin-top:16px;border-top:1px solid var(--line);padding-top:14px"},[
       U.el("div",{style:"display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"},[
@@ -2726,7 +2849,7 @@ function journeyPanel(c){
         return ta;
       })()
     ]),
-    getRole()==="admin"?U.el("div",{style:"margin-top:8px"},[U.el("button",{class:"btn sec sm",text:"⚙ Editar etapas deste ramo nas Configurações",onclick:function(){navigate("config");}})]):null
+    getRole()==="admin"?U.el("div",{style:"margin-top:8px"},[U.el("button",{class:"btn sec sm",text:atend?"⚙ Editar etapas de Atendimento nas Configurações":"⚙ Editar etapas deste ramo nas Configurações",onclick:function(){navigate("config");}})]):null
   ]));
   return wrap;
 }
@@ -2995,6 +3118,94 @@ Pages.seguradoras=function(){return aggPage("cia","Seguradoras");};
 Pages.oficinas=function(){return aggPage("oficina","Oficinas/Prestadores");};
 Pages.relatorios=function(){var cs=State.claims,porSit={},porCia={};cs.forEach(function(c){var s=mapSituacao(c.situacao).label;porSit[s]=(porSit[s]||0)+1;if(c.cia)porCia[c.cia]=(porCia[c.cia]||0)+1;});function mini(o){var k=Object.keys(o);if(!k.length)return emptyState("Sem dados.");return U.el("table",{},[U.el("tbody",{},k.map(function(x){return U.el("tr",{},[U.el("td",{text:x}),U.el("td",{class:"right mono",text:String(o[x])})]);}))]);}return shell(U.el("div",{},[U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Relatórios"})])]),U.el("div",{class:"grid c2"},[U.el("div",{class:"card"},[U.el("h3",{text:"Por situação",style:"margin-top:0"}),mini(porSit)]),U.el("div",{class:"card"},[U.el("h3",{text:"Por seguradora",style:"margin-top:0"}),mini(porCia)])])]),"Relatórios");};
 
+/* ---------- ABERTURA (criação manual de processos) ---------- */
+Pages.abertura=function(){
+  if(!canEdit()){
+    return shell(U.el("div",{},[
+      U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Abertura"}),U.el("p",{text:"Criação manual de processos"})])]),
+      U.el("div",{class:"card"},[emptyState("Seu perfil é apenas de consulta. Você não pode abrir novos processos.")])
+    ]),"Abertura");
+  }
+  var st=U.el("div",{id:"aberturaStatus"});
+  function setStatus(cls,msg){ st.innerHTML=""; st.appendChild(U.el("div",{class:"status "+cls,html:msg})); }
+  function f(label,el){ return U.el("div",{class:"field"},[U.el("label",{text:label}),el]); }
+
+  var tipoSel=U.el("select",{},[
+    U.el("option",{value:"Segurado",text:"Segurado"}),
+    U.el("option",{value:"Terceiro",text:"Terceiro"}),
+    U.el("option",{value:"Atendimento",text:"Atendimento"})
+  ]);
+  var seguradoInp=U.el("input",{placeholder:"Nome do segurado/terceiro"});
+  var placaInp=U.el("input",{placeholder:"ABC1D23"});
+  var numsinInp=U.el("input",{placeholder:"Opcional — nº de referência, se já houver"});
+
+  var ciaOpts=distinctValues(State.claims,"cia");
+  var ciaSel=U.el("select",{},[U.el("option",{value:"",text:"— Selecione —"})].concat(ciaOpts.map(function(v){return U.el("option",{value:v,text:v});})).concat([U.el("option",{value:"__nova__",text:"+ Nova seguradora..."})]));
+  var ciaNovaInp=U.el("input",{placeholder:"Nome da nova seguradora",class:"hidden"});
+  ciaSel.addEventListener("change",function(){ ciaNovaInp.classList.toggle("hidden",ciaSel.value!=="__nova__"); });
+
+  var ramoOpts=Object.keys(loadTemplates()).sort();
+  var ramoSel=U.el("select",{},[U.el("option",{value:"",text:"— Selecione —"})].concat(ramoOpts.map(function(v){return U.el("option",{value:v,text:v});})).concat([U.el("option",{value:"__novo__",text:"+ Novo ramo..."})]));
+  var ramoNovoInp=U.el("input",{placeholder:"Nome do novo ramo",class:"hidden"});
+  ramoSel.addEventListener("change",function(){ ramoNovoInp.classList.toggle("hidden",ramoSel.value!=="__novo__"); });
+
+  var oficinaOpts=distinctValues(State.claims,"oficina");
+  var oficinaSel=U.el("select",{},[U.el("option",{value:"",text:"— Nenhuma —"})].concat(oficinaOpts.map(function(v){return U.el("option",{value:v,text:v});})).concat([U.el("option",{value:"__nova__",text:"+ Nova oficina..."})]));
+  var oficinaNovaInp=U.el("input",{placeholder:"Nome da nova oficina",class:"hidden"});
+  oficinaSel.addEventListener("change",function(){ oficinaNovaInp.classList.toggle("hidden",oficinaSel.value!=="__nova__"); });
+
+  var numapoInp=U.el("input",{placeholder:"Nº da apólice"});
+  var numendInp=U.el("input",{placeholder:"Nº do endosso"});
+  var itemInp=U.el("input",{placeholder:"Item"});
+  var datocoInp=U.el("input",{type:"date"});
+  var davisInp=U.el("input",{type:"date",value:U.todayISO()});
+  var franquiaInp=U.el("input",{type:"number",step:"0.01",placeholder:"0,00"});
+  var valaviInp=U.el("input",{type:"number",step:"0.01",placeholder:"0,00"});
+
+  var respOpts=loadUsers();
+  var respSel=U.el("select",{},[U.el("option",{value:"",text:"— Sem responsável —"})].concat(respOpts.map(function(u){return U.el("option",{value:u.id,text:u.nome});})));
+
+  var descInp=U.el("textarea",{rows:"3",placeholder:"Descrição do caso..."});
+  var obsInp=U.el("textarea",{rows:"3",placeholder:"Observações..."});
+
+  var form=U.el("div",{class:"card"},[
+    U.el("h3",{text:"Novo processo",style:"margin-top:0"}),
+    U.el("p",{class:"muted",text:"Cria um processo direto no sistema (não vem da API CORP). Ele aparece em Sinistros, Clientes, Seguradoras, Oficinas, Dashboard e nos filtros normalmente, com identificação de \"criado manualmente\", e é preservado nas próximas sincronizações com a API."}),
+    U.el("div",{class:"grid c3"},[f("Tipo",tipoSel),f("Nome (segurado/terceiro)",seguradoInp),f("Placa",placaInp)]),
+    U.el("div",{class:"grid c3"},[f("Seguradora",ciaSel),f("Nova seguradora",ciaNovaInp),f("Nº de sinistro (opcional)",numsinInp)]),
+    U.el("div",{class:"grid c3"},[f("Ramo",ramoSel),f("Novo ramo",ramoNovoInp),f("Oficina/Prestador",oficinaSel)]),
+    U.el("div",{class:"grid c2"},[f("Nova oficina",oficinaNovaInp),f("Responsável",respSel)]),
+    U.el("div",{class:"grid c3"},[f("Apólice",numapoInp),f("Endosso",numendInp),f("Item",itemInp)]),
+    U.el("div",{class:"grid c2"},[f("Data de ocorrência",datocoInp),f("Data de aviso",davisInp)]),
+    U.el("div",{class:"grid c2"},[f("Franquia (R$)",franquiaInp),f("Valor avaliado (R$)",valaviInp)]),
+    f("Descrição",descInp),
+    f("Observações",obsInp),
+    U.el("p",{class:"muted",style:"font-size:12px",text:"O processo já inicia com situação \"Pendente\". Para vincular Segurado/Terceiro do mesmo evento, crie cada um e use a aba \"Vínculos\" dentro do processo depois."}),
+    st,
+    U.el("button",{class:"btn",text:"Criar processo",onclick:function(){
+      if(!requireEdit()) return;
+      var nome=(seguradoInp.value||"").trim();
+      if(!nome){ setStatus("err","Informe o nome do segurado/terceiro."); return; }
+      var cia = ciaSel.value==="__nova__" ? (ciaNovaInp.value||"").trim() : ciaSel.value;
+      var ramo = ramoSel.value==="__novo__" ? (ramoNovoInp.value||"").trim().toUpperCase() : ramoSel.value;
+      var oficina = oficinaSel.value==="__nova__" ? (oficinaNovaInp.value||"").trim() : oficinaSel.value;
+      var claim=createManualClaim({
+        tipoParte:tipoSel.value, segurado:nome, placa:placaInp.value, numsin:numsinInp.value,
+        cia:cia, ramo:ramo, oficina:oficina,
+        numapo:numapoInp.value, numend:numendInp.value, item:itemInp.value,
+        datoco:datocoInp.value, datavi:davisInp.value,
+        franquia:franquiaInp.value, valavi:valaviInp.value,
+        responsavelId:respSel.value,
+        descricao:descInp.value, observacoes:obsInp.value
+      });
+      setStatus("ok","✔ Processo criado! Abrindo...");
+      setTimeout(function(){ navigate("sinistro",claim.id); },400);
+    }})
+  ]);
+
+  return shell(U.el("div",{},[U.el("div",{class:"page-head"},[U.el("div",{},[U.el("h1",{text:"Abertura"}),U.el("p",{text:"Cria novos processos direto no sistema — Segurado, Terceiro ou Atendimento"})])]),form]),"Abertura");
+};
+
 /* ---------- INTEGRAÇÃO ---------- */
 Pages.integracao=function(){
   var cfg=getCfg(),st=U.el("div",{id:"syncStatus"});
@@ -3223,6 +3434,34 @@ Pages.config=function(){
   usersCard.appendChild(U.el("div",{style:"overflow:auto;margin-top:14px"},[U.el("table",{},[U.el("thead",{},[uhead]),U.el("tbody",{},ubody)])]));
   content.push(usersCard);
 
+  // ---- Editor de etapas de Atendimento (processos do tipo "Atendimento", independe do ramo) ----
+  var atendTpl=loadAtendTemplate();
+  var atendBox=U.el("div",{class:"card"});
+  atendBox.appendChild(U.el("h3",{text:"Etapas de Atendimento",style:"margin-top:0"}));
+  atendBox.appendChild(U.el("p",{class:"muted",text:"Usadas na Jornada do cliente sempre que o tipo do processo for \"Atendimento\" — não dependem do ramo. Adicione, edite ou remova como quiser."}));
+  atendTpl.steps.forEach(function(step,i){
+    var row=U.el("div",{style:"background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px"});
+    row.appendChild(U.el("div",{style:"display:flex;gap:8px;align-items:center;margin-bottom:8px"},[
+      U.el("input",{class:"inline",value:step.title,style:"font-weight:600;min-width:220px",onchange:function(e){step.title=e.target.value;saveAtendTemplate(atendTpl);}}),
+      U.el("button",{class:"btn danger xs",text:"Excluir etapa",onclick:function(){atendTpl.steps.splice(i,1);saveAtendTemplate(atendTpl);rerenderCfg();}})
+    ]));
+    var chips=U.el("div",{style:"display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"});
+    step.statusOptions.forEach(function(op,si){
+      chips.appendChild(U.el("span",{class:"badge gray",style:"gap:6px"},[
+        U.el("span",{text:op}),
+        U.el("a",{text:"✎",onclick:function(){var nv=prompt("Editar status:",op);if(nv){step.statusOptions[si]=nv.trim();saveAtendTemplate(atendTpl);rerenderCfg();}}}),
+        U.el("a",{text:"✕",style:"color:var(--danger)",onclick:function(){step.statusOptions.splice(si,1);saveAtendTemplate(atendTpl);rerenderCfg();}})
+      ]));
+    });
+    var addSt=U.el("input",{class:"inline",placeholder:"Novo status...",style:"min-width:150px"});
+    row.appendChild(chips);
+    row.appendChild(U.el("div",{style:"display:flex;gap:6px;align-items:center"},[addSt,U.el("button",{class:"btn sec xs",text:"+ Status",onclick:function(){var v=(addSt.value||"").trim();if(v){step.statusOptions.push(v);saveAtendTemplate(atendTpl);rerenderCfg();}}})]));
+    atendBox.appendChild(row);
+  });
+  var addEtAtend=U.el("input",{class:"inline",placeholder:"Nova etapa...",style:"min-width:180px"});
+  atendBox.appendChild(U.el("div",{style:"display:flex;gap:6px;align-items:center;margin:4px 0 4px"},[addEtAtend,U.el("button",{class:"btn sec xs",text:"+ Etapa",onclick:function(){var v=(addEtAtend.value||"").trim();if(v){atendTpl.steps.push({id:U.uid("at"),title:v,statusOptions:STATUS_DEFAULT.slice()});saveAtendTemplate(atendTpl);rerenderCfg();}}})]));
+  content.push(atendBox);
+
   content.push(editor);
   return shell(U.el("div",{},content),"Configurações");
 };
@@ -3435,7 +3674,7 @@ setInterval(function(){
   function fb(){ return window.__fb; }
 
   /* ---------- 1) Config pequena: 1 doc inteiro por chave (como na v1) ---------- */
-  var CONFIG_KEYS = ["corp_cfg","corp_task_types","corp_form_endpoints","corp_journey_templates","corp_sit_options","corp_temp_options"];
+  var CONFIG_KEYS = ["corp_cfg","corp_task_types","corp_form_endpoints","corp_journey_templates","corp_sit_options","corp_temp_options","corp_atendimento_template"];
   var CONFIG_COLLECTION = "s360_config";
   var applyingRemoteConfig = {};
   var configInitialLoad = true;

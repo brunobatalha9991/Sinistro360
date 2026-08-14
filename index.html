@@ -3252,42 +3252,35 @@ setInterval(function(){
 <!-- ===== Camada de sincronização Firestore <-> localStorage ===== -->
 <script>
 (function(){
-  // Chaves COMPARTILHADAS entre a equipe (vão para o Firestore).
-  // Preferências locais (tema, sidebar, colunas e sessão) NÃO entram aqui de propósito.
   var SHARED_KEYS = [
-    "corp_claims",          // sinistros da API
-    "corp_overrides",       // jornada, financeiro, vínculos, auditoria, próxima ação, etc.
-    "corp_users",           // usuários do sistema (login compartilhado)
-    "corp_tasks",           // comunicação interna
-    "corp_notifs",          // notificações
-    "corp_task_types",      // tipos de tarefa
-    "corp_demandas",        // demandas dos formulários
-    "corp_form_endpoints",  // configuração dos formulários
-    "corp_journey_templates", // modelos de jornada por ramo
-    "corp_sit_options",     // situações de atendimento
-    "corp_temp_options",    // temperaturas
-    "corp_cfg"              // configuração de conexão da API CORP
+    "corp_claims",
+    "corp_overrides",
+    "corp_users",
+    "corp_tasks",
+    "corp_notifs",
+    "corp_task_types",
+    "corp_demandas",
+    "corp_form_endpoints",
+    "corp_journey_templates",
+    "corp_sit_options",
+    "corp_temp_options",
+    "corp_cfg"
   ];
 
   var COLLECTION = "sinistros360_state";
-  var applyingRemote = {}; // trava anti-eco por chave
-  var pendingBeforeReady = false;
+  var applyingRemote = {};
 
   function fb(){ return window.__fb; }
 
-  // ---- Envia uma chave do localStorage para o Firestore ----
   function pushKey(key){
-    var F = fb(); if(!F || !F.ready) { pendingBeforeReady = true; return; }
-    if(applyingRemote[key]) return; // não reenvia o que acabou de chegar do servidor
+    var F = fb(); if(!F || !F.ready) return;
+    if(applyingRemote[key]) return;
     var raw = localStorage.getItem(key);
     var payload = { json: (raw==null ? null : raw), updatedAt: F.serverTimestamp() };
     F.setDoc(F.doc(F.db, COLLECTION, key), payload)
      .catch(function(e){ console.warn("[sync] falha ao enviar", key, e && e.message); });
   }
 
-  // ---- Intercepta localStorage.setItem: toda gravação numa chave compartilhada
-  //      é espelhada no Firestore automaticamente. Isso cobre TODAS as funções
-  //      saveClaims/saveOvr/saveUsers/... sem precisar alterar cada uma. ----
   var _setItem = Storage.prototype.setItem;
   Storage.prototype.setItem = function(key, value){
     _setItem.apply(this, arguments);
@@ -3299,18 +3292,35 @@ setInterval(function(){
     if(SHARED_KEYS.indexOf(key) >= 0){ pushKey(key); }
   };
 
-  // ---- Escuta o Firestore em tempo real e aplica no localStorage local ----
+  // >>> CORREÇÃO 1: recarrega em memória QUALQUER estado que o app mantenha,
+  // de forma robusta, sem depender de window.State existir.
+  function reloadInMemory(){
+    try{
+      if(typeof State !== "undefined" && typeof loadClaims === "function"){
+        State.claims = loadClaims();
+      }
+    }catch(e){
+      // fallback: se State não estiver no escopo alcançável, tenta via window
+      try{ if(window.State && typeof loadClaims==="function"){ window.State.claims = loadClaims(); } }catch(e2){}
+    }
+  }
+
+  function safeRender(){
+    try{ if(typeof render === "function"){ render(); return; } }catch(e){}
+    try{ if(typeof window.render === "function"){ window.render(); } }catch(e2){}
+  }
+
   function startListeners(){
     var F = fb(); if(!F || !F.ready) return;
     SHARED_KEYS.forEach(function(key){
       F.onSnapshot(F.doc(F.db, COLLECTION, key), function(snap){
         if(!snap.exists()) return;
         var data = snap.data() || {};
-        var remoteRaw = data.json;               // string JSON ou null
+        var remoteRaw = data.json;
         var localRaw  = localStorage.getItem(key);
-        if(remoteRaw === localRaw) return;       // nada mudou
+        if(remoteRaw === localRaw) return;
 
-        applyingRemote[key] = true;              // evita re-enviar de volta
+        applyingRemote[key] = true;
         try{
           if(remoteRaw == null) _removeItem.call(localStorage, key);
           else                  _setItem.call(localStorage, key, remoteRaw);
@@ -3318,17 +3328,16 @@ setInterval(function(){
           applyingRemote[key] = false;
         }
 
-        // Recarrega os dados na memória do app e redesenha, se possível.
-        try{ if(typeof loadClaims==="function"){ window.State && (State.claims = loadClaims()); } }catch(e){}
-        try{ if(typeof render==="function"){ render(); } }catch(e){}
+        // >>> CORREÇÃO 2: sempre recarrega o estado em memória E redesenha,
+        // independentemente de qual chave chegou.
+        reloadInMemory();
+        safeRender();
       }, function(err){
         console.warn("[sync] erro no listener", key, err && err.message);
       });
     });
 
-    // Primeiro envio: sobe o que já existe localmente (seed inicial).
-    // Só faz sentido para quem tem dados e o servidor ainda está vazio;
-    // como o setDoc é "merge por último", isso é seguro para começar.
+    // Envio inicial do que já existe localmente (seed).
     SHARED_KEYS.forEach(function(key){
       if(localStorage.getItem(key) != null){ pushKey(key); }
     });
@@ -3338,7 +3347,6 @@ setInterval(function(){
   else { window.addEventListener("firebase-ready", startListeners); }
 })();
 </script>
-
 
 </body>
 </html>

@@ -544,7 +544,8 @@ tr:hover td{background:var(--surface-2)}
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, doc, setDoc, onSnapshot, serverTimestamp
+    getFirestore, doc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
+    collection, writeBatch
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -559,12 +560,10 @@ tr:hover td{background:var(--surface-2)}
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
 
-  // Expõe o mínimo necessário para o script principal (não-module) usar.
   window.__fb = {
-    db, doc, setDoc, onSnapshot, serverTimestamp,
-    ready: true
+    db, doc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
+    collection, writeBatch, ready: true
   };
-  // Avisa o script principal que o Firebase está pronto.
   window.dispatchEvent(new Event("firebase-ready"));
 </script>
 
@@ -3252,39 +3251,62 @@ setInterval(function(){
 <!-- ===== Camada de sincronização Firestore <-> localStorage ===== -->
 <script>
 (function(){
+  // Chaves pequenas: continuam como 1 documento cada
   var SHARED_KEYS = [
-    "corp_claims",
-    "corp_overrides",
-    "corp_users",
-    "corp_tasks",
-    "corp_notifs",
-    "corp_task_types",
-    "corp_demandas",
-    "corp_form_endpoints",
-    "corp_journey_templates",
-    "corp_sit_options",
-    "corp_temp_options",
-    "corp_cfg"
+    "corp_overrides","corp_users","corp_tasks","corp_notifs",
+    "corp_task_types","corp_demandas","corp_form_endpoints",
+    "corp_journey_templates","corp_sit_options","corp_temp_options","corp_cfg"
   ];
+  var STATE_COLLECTION  = "sinistros360_state";   // docs pequenos
+  var CLAIMS_COLLECTION = "sinistros360_claims";  // 1 doc por sinistro
 
-  var COLLECTION = "sinistros360_state";
   var applyingRemote = {};
+  var initialLoad = true;
+  var firstSnapSeen = {};
+  var watchTargets = SHARED_KEYS.concat(["__claims__"]);
 
   function fb(){ return window.__fb; }
 
+  /* ---------- chaves pequenas (documento único) ---------- */
   function pushKey(key){
     var F = fb(); if(!F || !F.ready) return;
+    if(initialLoad) return;
     if(applyingRemote[key]) return;
     var raw = localStorage.getItem(key);
-    var payload = { json: (raw==null ? null : raw), updatedAt: F.serverTimestamp() };
-    F.setDoc(F.doc(F.db, COLLECTION, key), payload)
-     .catch(function(e){ console.warn("[sync] falha ao enviar", key, e && e.message); });
+    F.setDoc(F.doc(F.db, STATE_COLLECTION, key),
+             { json: (raw==null?null:raw), updatedAt: F.serverTimestamp() })
+     .catch(function(e){ console.warn("[sync] push", key, e && e.message); });
   }
 
+  /* ---------- corp_claims: 1 documento por sinistro ---------- */
+  function pushClaims(){
+    var F = fb(); if(!F || !F.ready) return;
+    if(initialLoad) return;
+    if(applyingRemote["corp_claims"]) return;
+    var arr; try{ arr = JSON.parse(localStorage.getItem("corp_claims")||"[]"); }catch(e){ arr=[]; }
+    // grava em lotes de 400 (limite do writeBatch é 500 ops)
+    var i=0;
+    function nextBatch(){
+      if(i>=arr.length) return;
+      var batch = F.writeBatch(F.db);
+      for(var n=0; n<400 && i<arr.length; n++, i++){
+        var c = arr[i];
+        if(!c || !c.id) continue;
+        batch.set(F.doc(F.db, CLAIMS_COLLECTION, c.id), { data: JSON.stringify(c) });
+      }
+      batch.commit()
+        .then(function(){ if(i<arr.length) nextBatch(); else console.log("[sync] claims publicados:", arr.length); })
+        .catch(function(e){ console.warn("[sync] claims batch", e && e.message); });
+    }
+    nextBatch();
+  }
+
+  /* ---------- interceptação do localStorage ---------- */
   var _setItem = Storage.prototype.setItem;
   Storage.prototype.setItem = function(key, value){
     _setItem.apply(this, arguments);
-    if(SHARED_KEYS.indexOf(key) >= 0){ pushKey(key); }
+    if(key === "corp_claims"){ pushClaims(); }
+    else if(SHARED_KEYS.indexOf(key) >= 0){ pushKey(key); }
   };
   var _removeItem = Storage.prototype.removeItem;
   Storage.prototype.removeItem = function(key){
@@ -3292,55 +3314,81 @@ setInterval(function(){
     if(SHARED_KEYS.indexOf(key) >= 0){ pushKey(key); }
   };
 
-  // >>> CORREÇÃO 1: recarrega em memória QUALQUER estado que o app mantenha,
-  // de forma robusta, sem depender de window.State existir.
   function reloadInMemory(){
     try{
       if(typeof State !== "undefined" && typeof loadClaims === "function"){
         State.claims = loadClaims();
       }
     }catch(e){
-      // fallback: se State não estiver no escopo alcançável, tenta via window
       try{ if(window.State && typeof loadClaims==="function"){ window.State.claims = loadClaims(); } }catch(e2){}
     }
   }
-
   function safeRender(){
     try{ if(typeof render === "function"){ render(); return; } }catch(e){}
     try{ if(typeof window.render === "function"){ window.render(); } }catch(e2){}
   }
 
+  function maybeFinishInitialLoad(){
+    if(!initialLoad) return;
+    for(var i=0;i<watchTargets.length;i++){ if(!firstSnapSeen[watchTargets[i]]) return; }
+    initialLoad = false;
+    console.log("[sync] carga inicial concluída — envios liberados");
+  }
+
   function startListeners(){
     var F = fb(); if(!F || !F.ready) return;
-    SHARED_KEYS.forEach(function(key){
-      F.onSnapshot(F.doc(F.db, COLLECTION, key), function(snap){
-        if(!snap.exists()) return;
-        var data = snap.data() || {};
-        var remoteRaw = data.json;
-        var localRaw  = localStorage.getItem(key);
-        if(remoteRaw === localRaw) return;
 
-        applyingRemote[key] = true;
-        try{
-          if(remoteRaw == null) _removeItem.call(localStorage, key);
-          else                  _setItem.call(localStorage, key, remoteRaw);
-        } finally {
-          applyingRemote[key] = false;
+    // Listeners das chaves pequenas
+    SHARED_KEYS.forEach(function(key){
+      F.onSnapshot(F.doc(F.db, STATE_COLLECTION, key), function(snap){
+        firstSnapSeen[key] = true;
+        if(snap.exists()){
+          var remoteRaw = (snap.data()||{}).json;
+          var localRaw  = localStorage.getItem(key);
+          if(remoteRaw !== localRaw){
+            applyingRemote[key]=true;
+            try{
+              if(remoteRaw==null) _removeItem.call(localStorage,key);
+              else _setItem.call(localStorage,key,remoteRaw);
+            } finally { applyingRemote[key]=false; }
+            reloadInMemory(); safeRender();
+          }
         }
+        maybeFinishInitialLoad();
+        if(!initialLoad && !snap.exists() && localStorage.getItem(key)!=null){ pushKey(key); }
+      }, function(err){ firstSnapSeen[key]=true; maybeFinishInitialLoad(); console.warn("[sync]",key,err&&err.message); });
+    });
 
-        // >>> CORREÇÃO 2: sempre recarrega o estado em memória E redesenha,
-        // independentemente de qual chave chegou.
-        reloadInMemory();
-        safeRender();
-      }, function(err){
-        console.warn("[sync] erro no listener", key, err && err.message);
+    // Listener da COLEÇÃO de sinistros (documento por sinistro)
+    F.onSnapshot(F.collection(F.db, CLAIMS_COLLECTION), function(qs){
+      firstSnapSeen["__claims__"] = true;
+      var arr = [];
+      qs.forEach(function(d){
+        try{ arr.push(JSON.parse(d.data().data)); }catch(e){}
       });
-    });
+      // só aplica se o remoto tiver algo (evita apagar local quando a coleção está vazia)
+      if(arr.length){
+        var localRaw = localStorage.getItem("corp_claims");
+        var remoteRaw = JSON.stringify(arr);
+        if(remoteRaw !== localRaw){
+          applyingRemote["corp_claims"]=true;
+          try{ _setItem.call(localStorage,"corp_claims",remoteRaw); }
+          finally{ applyingRemote["corp_claims"]=false; }
+          reloadInMemory(); safeRender();
+        }
+      }
+      maybeFinishInitialLoad();
+    }, function(err){ firstSnapSeen["__claims__"]=true; maybeFinishInitialLoad(); console.warn("[sync] claims listener", err&&err.message); });
 
-    // Envio inicial do que já existe localmente (seed).
-    SHARED_KEYS.forEach(function(key){
-      if(localStorage.getItem(key) != null){ pushKey(key); }
-    });
+    // Rede de segurança
+    setTimeout(function(){
+      if(initialLoad){
+        initialLoad=false;
+        console.log("[sync] liberado por timeout");
+        SHARED_KEYS.forEach(function(k){ if(localStorage.getItem(k)!=null) pushKey(k); });
+        if(localStorage.getItem("corp_claims")!=null) pushClaims();
+      }
+    }, 8000);
   }
 
   if(window.__fb && window.__fb.ready){ startListeners(); }

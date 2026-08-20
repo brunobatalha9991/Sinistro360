@@ -3850,6 +3850,8 @@ function syncAll(opts){
   State.claims.forEach(function(c){ if(isManualClaim(c)){ byId[c.id]=c; } });
   // Guarda quantos claims da API existiam antes (para relatar quantos foram descartados).
   var apiAntes=State.claims.filter(function(c){return !isManualClaim(c);}).length;
+    var isoIni=opts.data_inicial?U.isoFromBR(opts.data_inicial):"";
+  var isoFim=opts.data_final?U.isoFromBR(opts.data_final):"";
   var TIPOS=["S","A","T"]; // Sinistro (segurado), Aviso, Terceiro
   function tipoLoop(ti){
             if(ti>=TIPOS.length){
@@ -3861,16 +3863,23 @@ function syncAll(opts){
     }
 
     function pagina(p){
-      var params={tipo_sinistro:TIPOS[ti],pagina:p};
-      if(opts.data_inicial)params.data_inicial=opts.data_inicial;
-      if(opts.data_final)params.data_final=opts.data_final;
-      return CorpAPI.fetchSinistros(params).then(function(resp){
-        var arr=Array.isArray(resp)?resp:((resp&&(resp.sinistros||resp.sinistro||resp.dados||resp.data||resp.itens||resp.registros))||[]);
-        arr.forEach(function(raw){var m=mapCorp(raw);ensureRamoTemplate(m.ramo);if(byId[m.id])atualizados++;else novos++;byId[m.id]=m;});
-        if(arr.length>=100&&p<100)return pagina(p+1);
-        return tipoLoop(ti+1);
-      });
-    }
+  var params={tipo_sinistro:TIPOS[ti],pagina:p};
+  if(opts.data_inicial)params.data_inicial=opts.data_inicial;
+  if(opts.data_final)params.data_final=opts.data_final;
+  return CorpAPI.fetchSinistros(params).then(function(resp){
+    var arr=Array.isArray(resp)?resp:((resp&&(resp.sinistros||resp.sinistro||resp.dados||resp.data||resp.itens||resp.registros))||[]);
+    arr.forEach(function(raw){
+      var m=mapCorp(raw);
+      // Filtro de período aplicado aqui no sistema — não depende da API respeitar
+      // data_inicial/data_final. Descarta qualquer registro fora do período escolhido.
+      if(isoIni && m.datoco && m.datoco<isoIni) return;
+      if(isoFim && m.datoco && m.datoco>isoFim) return;
+      ensureRamoTemplate(m.ramo);if(byId[m.id])atualizados++;else novos++;byId[m.id]=m;
+    });
+    if(arr.length>=100&&p<100)return pagina(p+1);
+    return tipoLoop(ti+1);
+  });
+}
     return pagina(1);
   }
   return tipoLoop(0);

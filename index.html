@@ -3591,6 +3591,7 @@ Pages.integracao=function(){
     U.el("div",{style:"display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"},[
       U.el("button",{class:"btn sec",text:"Salvar conexão",onclick:function(){setCfg(collect());setStatus("ok","Configuração salva.");}}),
       U.el("button",{class:"btn",id:"btnSync",text:"↻ Sincronizar período selecionado",onclick:function(){
+                  if(window.__s360RecordsReady===false){setStatus("err","Aguarde alguns segundos: o sistema ainda está carregando os dados existentes do Firebase. Tente sincronizar de novo em instantes.");return;}
         setCfg(collect());
         var di=brFromInput("data_inicial"),df=brFromInput("data_final");
         if(!di||!df){setStatus("err","Selecione data inicial e final.");return;}
@@ -4136,6 +4137,7 @@ setInterval(function(){
     corp_demandas:  { col:"s360_demandas",  keyed:false },
     corp_overrides: { col:"s360_overrides", keyed:true  }
   };
+    window.__s360RecordsReady = false;
   var remoteCache = {};              // remoteCache[key] = { recordId: jsonStringDoRegistro }
   var applyingRemoteRecord = {};
   var recordsInitialLoad = {};
@@ -4222,6 +4224,7 @@ setInterval(function(){
     if(!recordsInitialLoad[key]) return;
     recordsInitialLoad[key] = false;
     console.log("[sync-records] carga inicial concluída:", key);
+        if(Object.keys(RECORD_SPECS).every(function(k){return !recordsInitialLoad[k];})) window.__s360RecordsReady = true;
     // publica o que só existe local (ex.: usuário admin semeado antes do Firebase ficar pronto)
     pushRecordKey(key);
   }

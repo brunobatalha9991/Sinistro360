@@ -165,6 +165,7 @@ h1,h2,h3,h4{font-family:var(--font-display);letter-spacing:-.01em;color:var(--in
 .badge.chip-live.green{background:linear-gradient(135deg,var(--ok),#5cf0b8);color:#04231a}
 .badge.chip-live.gray{background:linear-gradient(135deg,#8b93a7,#aab2c5)}
 .badge.chip-live.blue{background:linear-gradient(135deg,var(--brand),#7db3ff)}
+.badge.chip-live.orange{background:linear-gradient(135deg,#f97316,#fb923c)}
 .responsavel-box.needs-attention{background:rgba(var(--warn-rgb),.12);border:1px solid rgba(var(--warn-rgb),.55);box-shadow:0 0 0 1px rgba(var(--warn-rgb),.2)}
 .notif-panel{position:absolute;top:52px;right:20px;width:360px;max-width:92vw;max-height:70vh;overflow:auto;background:var(--card);backdrop-filter:var(--card-blur);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);z-index:50;padding:8px}
 .notif-item{display:flex;gap:10px;padding:10px 11px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:background-color .12s ease,border-color .12s ease}
@@ -267,7 +268,7 @@ h1,h2,h3,h4{font-family:var(--font-display);letter-spacing:-.01em;color:var(--in
 .sidebar .nav-dot{width:7px;height:7px;border-radius:50%;background:var(--danger);margin-left:auto;box-shadow:0 0 8px rgba(var(--danger-rgb),.85);animation:navDotPulse 1.8s ease-in-out infinite;flex-shrink:0}
 .sidebar .ver{padding:12px 20px 16px;font-size:10.5px;color:var(--muted-soft);border-top:1px solid var(--sidebar-border)}
 
-@media(max-width:900px){
+@media(max-width:640px){
   .sidebar{width:66px}
   .sidebar .brand span:last-child,.sidebar nav a span:last-child,.sidebar .ver{display:none}
   .sidebar nav a{justify-content:center;padding:11px}
@@ -551,40 +552,60 @@ tr:hover td{background:var(--surface-2)}
 .dash-empty .big{margin-bottom:14px;opacity:.5;display:flex;justify-content:center}
 .dash-empty .big svg{width:44px;height:44px}
 /* ==========================================================================
-   CHIPS DE ATENDIMENTO (temperatura / situação) — cor consistente no tema
-   CLARO igual ao ESCURO, e botões +/✎/✕ no mesmo tamanho dos vizinhos.
+   CHIPS DE ATENDIMENTO (temperatura / situação) — select e botões legíveis,
+   herdando a cor do chip, com bom contraste no tema CLARO e ESCURO.
    ========================================================================== */
-/* o <select> dentro do chip fica transparente para não cobrir a cor do chip */
+.badge.chip-live{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; }
+
 .badge.chip-live select{
-  background:rgba(255,255,255,.18)!important;
-  border:1px solid rgba(255,255,255,.35)!important;
+  background:transparent!important;
+  border:1px solid rgba(255,255,255,.5)!important;
   color:#fff!important;
   font-weight:700;
   padding:4px 26px 4px 10px;
   height:26px;
+  line-height:1;
   border-radius:7px;
+  box-shadow:none!important;
+  text-shadow:0 1px 1px rgba(0,0,0,.25);
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23ffffff' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important;
+  background-repeat:no-repeat!important;
+  background-position:right 9px center!important;
+  -webkit-appearance:none;appearance:none;
 }
-/* deixa o texto das opções legível (a lista abre com fundo do sistema) */
+.badge.chip-live select:focus{
+  outline:none;
+  border-color:#fff!important;
+  box-shadow:0 0 0 2px rgba(255,255,255,.35)!important;
+}
 .badge.chip-live select option{ color:#0f172a; background:#ffffff; }
 [data-theme="dark"] .badge.chip-live select option{ color:#e8ecf5; background:#171a24; }
-/* botões +/✎/✕ dentro dos chips: mesmo tamanho/altura do select ao lado */
+
+/* No chip ÂMBAR (Em atenção) o fundo é claro: usa texto escuro p/ contraste */
+.badge.chip-live.amber select,
+.badge.chip-live.amber .btn.xs{ color:#3a2400!important; text-shadow:none; }
+.badge.chip-live.amber select{ border-color:rgba(58,36,0,.4)!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%233a2400' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important; }
+.badge.chip-live.amber .btn.xs{ background:rgba(58,36,0,.14); border-color:rgba(58,36,0,.4); }
+.badge.chip-live.amber .btn.xs:hover{ background:rgba(58,36,0,.24); }
+
 .badge.chip-live .btn.xs{
   height:26px;
-  padding:0 10px;
+  padding:0 9px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  font-size:12px;
+  font-size:13px;
+  line-height:1;
   border-radius:7px;
-  background:rgba(255,255,255,.18);
+  background:rgba(255,255,255,.22);
   color:#fff;
-  border:1px solid rgba(255,255,255,.35);
+  border:1px solid rgba(255,255,255,.5);
   box-shadow:none;
+  text-shadow:0 1px 1px rgba(0,0,0,.25);
 }
-.badge.chip-live .btn.xs:hover{ background:rgba(255,255,255,.3); filter:none; }
-/* alinha o select e os botões numa linha só, com respiro entre eles */
-.badge.chip-live{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; }
+.badge.chip-live .btn.xs:hover{ background:rgba(255,255,255,.38); filter:none; }
+
 
 
 </style>
@@ -839,9 +860,13 @@ function findUserByEmail(email){
 }
 function findUserById(id){ return loadUsers().filter(function(u){return u.id===id;})[0]||null; }
 
-/* Sessão do usuário logado */
-function getSession(){ try{ return JSON.parse(localStorage.getItem(SESSION_KEY))||null; }catch(e){ return null; } }
-function setSession(s){ if(s) localStorage.setItem(SESSION_KEY,JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); }
+/* Sessão do usuário logado
+   OBS: usa sessionStorage (não localStorage) de propósito — isso faz a
+   sessão durar só enquanto a aba/navegador estiver aberto. Ao fechar o
+   navegador (inclusive pelo X, sem clicar em "Sair"), a sessão é apagada
+   automaticamente e o sistema pedirá login de novo na próxima vez. */
+function getSession(){ try{ return JSON.parse(sessionStorage.getItem(SESSION_KEY))||null; }catch(e){ return null; } }
+function setSession(s){ if(s) sessionStorage.setItem(SESSION_KEY,JSON.stringify(s)); else sessionStorage.removeItem(SESSION_KEY); }
 function currentUser(){ var s=getSession(); return s?findUserById(s.userId):null; }
 function currentRole(){ var u=currentUser(); return u?u.role:"consulta"; }
 
@@ -936,6 +961,11 @@ function markTaskCiente(taskId){
   if(!t.ciente) t.ciente={};
   t.ciente[me.id]=new Date().toISOString();
   saveTasks(loadTasks().map(function(x){return x.id===t.id?t:x;}));
+  // limpa só as notificações DESTA tarefa (taskId) e DESTE usuário (me.id) —
+  // não mexe em notificações de outras tarefas nem de outros usuários
+  saveNotifs(loadNotifs().map(function(n){
+    return (n.taskId===taskId && n.userId===me.id) ? Object.assign({},n,{read:true}) : n;
+  }));
 }
 /* o usuário logado está ciente se registrou "ciente" DEPOIS da última atualização da tarefa */
 function taskCienteByMe(t){
@@ -2836,7 +2866,7 @@ function loadTempOptions(){try{var v=JSON.parse(localStorage.getItem(TEMP_KEY));
 function saveTempOptions(l){localStorage.setItem(TEMP_KEY,JSON.stringify(l));}
 function getTemp(claimId){var o=getOvr(claimId);return o.temperatura||"";}
 function saveTemp(claimId,v){setOvr(claimId,{temperatura:v});}
-function tempColor(t){t=String(t||"").toLowerCase();if(t.indexOf("grave")>=0)return"red";if(t.indexOf("aten")>=0)return"amber";if(t.indexOf("moder")>=0)return"amber";if(t.indexOf("tranq")>=0)return"green";return"gray";}
+function tempColor(t){t=String(t||"").toLowerCase();if(t.indexOf("grave")>=0)return"red";if(t.indexOf("moder")>=0)return"orange";if(t.indexOf("aten")>=0)return"amber";if(t.indexOf("tranq")>=0)return"green";return"gray";}
 
 /* ---- Cabeçalho do detalhe com resumo lateral ---- */
 function detailHeader(c,sit,rel){
@@ -4212,7 +4242,7 @@ setInterval(function(){
             reloadInMemory(); safeRender();
           }
           finishRecordInitialLoad(key);
-        }, 0);
+        }, 400); /* espera 0,4s e junta várias mudanças de uma vez, em vez de redesenhar a tela a cada mudancinha */
       }, function(err){ console.warn("[sync-records] erro no listener", key, err && err.message); finishRecordInitialLoad(key); });
     });
   }
